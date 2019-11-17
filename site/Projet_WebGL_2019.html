@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<title>Projet WebGL 2019 - Université de Limoges</title>
+
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<link type="text/css" rel="stylesheet" href="main.css">
+	</head>
+
+	<body>
+		<div id="info">
+			Projet WebGL 2019 - Université de Limoges - Jonas FRANCESHI - Martin MORAND - Antoine TABARAUD
+		</div>
+		<script type="module">
+
+			import * as THREE from './threejs/three.module.js';
+			import { OBJLoader } from './threejs/OBJLoader.js';
+			import { TrackballControls } from './threejs/TrackballControls.js';
+
+			var container;
+
+			var camera, scene, renderer, controls;
+
+			var windowHalfX = window.innerWidth / 2;
+			var windowHalfY = window.innerHeight / 2;
+
+			var object;
+
+			var rail1, rail2, terrain, locomotive;
+
+			//afficher ou non les axes des différents objets
+			var afficherAxes = false;
+
+			//stockage des rails
+			var rails1Tab = [];
+			var rails2Tab = [];
+			//nombre de rail dans chaque ligne droite
+			var nbrRails = [20, 11, 14, 7, 25, 6, 4, 23, 4, 13, 12, 5, 22];
+			//calcul du nombre total de rails (utilisé dans l'animation locomotive)
+			var nbrTotalRails=0;
+			for (var i = 0; i < nbrRails.length; i++) {
+				nbrTotalRails+=nbrRails[i];
+			}
+
+			//premier lancement des functions
+			init();
+			animate();
+
+			function init() {
+				container = document.createElement('div');
+				document.body.appendChild(container);
+
+				// scene
+				scene = new THREE.Scene();
+
+				if(afficherAxes){
+					var axesScene = new THREE.AxesHelper(100);
+					scene.add(axesScene);
+				}
+
+				createRenderer();
+				createCamera();
+				createControls();
+				createLights();
+				loadModels();
+
+				// gestion redimensionnement fenetre
+				window.addEventListener( 'resize', onWindowResize, false );
+			}
+
+			// creation renderer
+			function createRenderer() {
+				renderer = new THREE.WebGLRenderer();
+				renderer.setPixelRatio(window.devicePixelRatio);
+				renderer.setSize(window.innerWidth, window.innerHeight);
+				renderer.setClearColor(0xAAAAAA, 1);
+				container.appendChild(renderer.domElement);
+			}
+
+			// camera
+			function createCamera() {
+				camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 4000);
+				camera.position.z = 400;
+				camera.position.y = -500;
+
+				camera.lookAt(0, 0, 0);
+				scene.add(camera);
+			}
+
+			function createControls() {
+				// controle sur la camera, type trackball
+				controls = new TrackballControls(camera, renderer.domElement);
+			}
+
+			// lights
+			function createLights() {
+				var light = new THREE.PointLight(0xFFFFFF, 1.0);
+				light.position.set(0, 500, 500);
+				scene.add(light);
+			}
+
+
+			// load all models
+			function loadModels() {
+				var material = new THREE.MeshNormalMaterial();
+
+				// http://www.smartjava.org/content/render-3d-star-wars-force-awakens-models-blender-and-threejs/
+				var textLoader = new THREE.TextureLoader();
+				var diffuseTexture = textLoader.load("data/textures/Terrain/diffuse.png");
+				var bumpTexture = textLoader.load("data/textures/Terrain/flows.png");
+				var emissiveTexture = textLoader.load("data/textures/Terrain/hight.png");//montagnes (color white)
+				var specularTexture = textLoader.load("data/textures/Terrain/flows.png");
+
+				function loadModel() {
+					terrain.traverse(function (child) {
+						if (child.isMesh){
+							// http://www.smartjava.org/content/render-3d-star-wars-force-awakens-models-blender-and-threejs/
+							var material = child.material;
+
+							// basic texture
+							material.map = diffuseTexture;
+
+
+							// bumps
+							//material.bumpMap = bumpTexture;
+							//material.bumpScale = 0.3;
+
+							// glow
+							material.emissive = new THREE.Color(0xffffff);//couleur blanche pour la neige
+							material.emissiveMap = emissiveTexture;
+
+							// specular
+							//material.specularMap = specularTexture;
+
+							// enable shadows
+							//child.receiveShadow = true;
+							//child.castShadow = true;
+						}
+
+
+						//prof
+						/*if (child.isMesh){
+							// tbd
+							//var material = new THREE.ImageUtils.loadTexture( 'data/textures/Terrain/diffuse.png');
+							child.material.map = material;
+						}*/
+					});
+
+					scene.add(terrain);
+				}
+
+				// LoadingManager
+				var manager = new THREE.LoadingManager(loadModel);
+				manager.onStart = function ( item, loaded, total ) {
+					console.log( 'Started loading file: ' + item + '.\nLoaded ' + loaded + ' of ' + total + ' files.' );
+				};
+				manager.onProgress = function (item, loaded, total) {
+					console.log("Load:", item, "(", loaded, "/", total, ")");
+				};
+				manager.onError = function ( error ) {
+					console.log( 'There was an error loading : ' + error );
+				};
+
+
+
+				// OBJLoader
+				var objLoader = new OBJLoader(manager);
+				objLoader.onError = function ( error ) {
+					console.log("Error OBJLoader : " + error);
+				};
+				objLoader.onProgress = function ( xhr ) {
+					console.log(( xhr.loaded / xhr.total * 100 ) + '% loaded' );
+				};
+
+				// Terrain
+				objLoader.load('data/models/TerrainLod4.obj', function (obj) {
+					terrain = obj;
+
+					if (afficherAxes){
+						var axesTerrain = new THREE.AxesHelper(100);
+						terrain.add(axesTerrain);
+					}
+				});
+
+				// Rail droit
+				objLoader.load('data/models/rail1.obj', function (obj) {
+					rail1 = obj;
+					rail1.rotateX(90.0 * 2.0 * Math.PI / 360.0);
+					rail1.scale.set(0.1, 0.1, 0.1);
+					rail1.translateX(-100.0);
+					rail1.translateZ(100.0);
+					rail1.translateY(10.0);
+
+
+					setupRails("rail1");
+
+					//scene.add(rail1);
+				});
+
+				// Rail tournant
+				//chemin texture 'data/textures/Rails/rayCSurface_Color.jpg'
+				//var JPGFile = 'data/textures/Rails/rayCSurface_Color.jpg';
+				objLoader.load('data/models/rail2.obj', function (obj) {
+					rail2 = obj;
+
+					rail2.rotateX(90.0 * 2.0 * Math.PI / 360.0);
+					rail2.scale.set(0.1, 0.1, 0.1);
+					rail2.translateX(-100.0);
+					rail2.translateZ(100.0);
+					rail2.translateY(10.0);
+
+
+					//ne marche pas:
+					rail2.traverse( function ( child ) {
+						if (child.isMesh) {
+							var JPGFile = 'data/textures/Rails/rayCSurface_Color.jpg';
+							//var texture = new THREE.ImageUtils.loadTexture( JPGFile);
+							//var texture = new textLoader.load(JPGFile);
+							//child.material.map = texture;
+						}
+					});
+
+					setupRails("rail2");
+
+					//scene.add(rail2);
+				});
+
+				// Locomotive
+				objLoader.load('data/models/locomotive.obj', function (obj) {
+					locomotive = obj;
+
+					locomotive.rotateX(90.0 * 2.0 * Math.PI / 360.0);
+					locomotive.scale.set(0.3, 0.3, 0.3);
+					locomotive.translateX(-100.0);
+					locomotive.translateZ(100.0);
+					locomotive.translateY(10.0);
+
+
+					locomotive.traverse(function (child) {
+						if (child.isMesh)
+							child.material = material;
+
+					});
+
+					//if (afficherAxes){
+						var axesLocomotive = new THREE.AxesHelper(200);
+						locomotive.add(axesLocomotive);
+					//}
+
+					scene.add(locomotive);
+				});
+			}
+
+			function setupRails(rail) {
+				var i, i2=0, ligneDroite=0;
+				var start = 0;
+				var end = nbrRails[ligneDroite];
+				//première ligne droite
+				if (rail==="rail1"){
+					for (i = start; i < end; i++) {
+						//clonage du rail droit
+						rails1Tab[i] = rail1.clone();
+						//incrémentation de la position en fonction du dernier rail de la ligne précédente (et rotation si besoin)
+						rails1Tab[i].position.setX(-100);
+						rails1Tab[i].position.setY(-70-i*30);
+						//affichage
+						scene.add(rails1Tab[i]);
+					}
+				}
+				// 1er virage
+				if (rail==="rail2"){
+					i2++;
+					//clonage du rail tournant
+					rails2Tab[i2] = rail2.clone();
+					// rotation pour le mettre dans le bon sens
+					rails2Tab[i2].rotation.y=-Math.PI/2.0;
+					// positionné en fonction du dernier de la ligne droite précédente
+					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x-46.9);
+					rails2Tab[i2].position.setY((rails1Tab[end-1].position.y-30)-15.15);
+					//affichage
+					scene.add(rails2Tab[i2]);
+				}
+
+				ligneDroite++;
+				start = end;
+				end += nbrRails[ligneDroite];
+				if (rail==="rail1"){
+					for (i = start; i < end; i++) {
+						rails1Tab[i] = rail1.clone();
+						rails1Tab[i].rotation.y=Math.PI/2.0;
+						rails1Tab[i].position.setX(rails1Tab[start-1].position.x-(i-start+1)*30-15.05);
+						rails1Tab[i].position.setY(rails1Tab[start-1].position.y-30-14.8);
+						scene.add(rails1Tab[i]);
+					}
+				}
+				// 2eme virage
+				if (rail==="rail2"){
+					i2++;
+					rails2Tab[i2] = rail2.clone();
+					rails2Tab[i2].rotation.y=-Math.PI;
+					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x-45.1);
+					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y+46.6);
+					scene.add(rails2Tab[i2]);
+				}
+
+				ligneDroite++;
+				start = end;
+				end += nbrRails[ligneDroite];
+				if (rail==="rail1"){
+					for (i = start; i < end; i++) {
+						rails1Tab[i] = rail1.clone();
+						rails1Tab[i].position.setX(rails1Tab[start-1].position.x-30-14.75);
+						rails1Tab[i].position.setY(rails1Tab[start-1].position.y+(i+1-start)*30+14.75);
+						scene.add(rails1Tab[i]);
+					}
+				}
+				// 3eme virage
+				if(rail==="rail2"){
+					i2++;
+					rails2Tab[i2] = rail2.clone();
+					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x);
+					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y-1.8);
+					scene.add(rails2Tab[i2]);
+				}
+
+				ligneDroite++;
+				start = end;
+				end += nbrRails[ligneDroite];
+				if (rail==="rail1"){
+					for (i = start; i < end; i++) {
+						rails1Tab[i] = rail1.clone();
+						rails1Tab[i].rotation.y=Math.PI/2.0;
+						rails1Tab[i].position.setX(rails1Tab[start-1].position.x-(i+1-start)*30-15);
+						rails1Tab[i].position.setY(rails1Tab[start-1].position.y+30+15.25);
+						scene.add(rails1Tab[i]);
+					}
+				}
+				// 4eme virage
+				if (rail==="rail2"){
+					i2++;
+					rails2Tab[i2] = rail2.clone();
+					rails2Tab[i2].rotation.y=-Math.PI;
+					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x-45.1);
+					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y+46.6);
+					scene.add(rails2Tab[i2]);
+				}
+
+				ligneDroite++;
+				start = end;
+				end += nbrRails[ligneDroite];
+				if (rail==="rail1"){
+					for (i = start; i < end; i++) {
+						rails1Tab[i] = rail1.clone();
+						rails1Tab[i].position.setX(rails1Tab[start-1].position.x-30-14.75);
+						rails1Tab[i].position.setY(rails1Tab[start-1].position.y+(i+1-start)*30+14.75);
+						scene.add(rails1Tab[i]);
+					}
+				}
+				// 5eme virage
+				if (rail==="rail2"){
+					i2++;
+					rails2Tab[i2] = rail2.clone();
+					rails2Tab[i2].rotation.y=Math.PI/2;
+					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x+46.45);
+					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y+45);
+					scene.add(rails2Tab[i2]);
+				}
+				ligneDroite++;
+				start = end;
+				end += nbrRails[ligneDroite];
+				if (rail==="rail1"){
+					for (i = start; i < end; i++) {
+						rails1Tab[i] = rail1.clone();
+						rails1Tab[i].rotation.y=Math.PI/2.0;
+						rails1Tab[i].position.setX(rails1Tab[start-1].position.x+(i-start+1)*30+14.7);
+						rails1Tab[i].position.setY(rails1Tab[start-1].position.y+30+15);
+						scene.add(rails1Tab[i]);
+					}
+				}
+				// 6eme virage
+				if (rail==="rail2"){
+					i2++;
+					rails2Tab[i2] = rail2.clone();
+					rails2Tab[i2].rotation.y=-Math.PI/2;
+					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x-2);
+					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y-0.4);
+					scene.add(rails2Tab[i2]);
+				}
+
+				ligneDroite++;
+				start = end;
+				end += nbrRails[ligneDroite];
+				if (rail==="rail1"){
+					for (i = start; i < end; i++) {
+						rails1Tab[i] = rail1.clone();
+						rails1Tab[i].position.setX(rails1Tab[start-1].position.x+30+14.9);
+						rails1Tab[i].position.setY(rails1Tab[start-1].position.y+(i+1-start)*30+14.75);
+						scene.add(rails1Tab[i]);
+					}
+				}
+				// 7eme virage
+				if (rail==="rail2"){
+					i2++;
+					rails2Tab[i2] = rail2.clone();
+					rails2Tab[i2].rotation.y=Math.PI/2;
+					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x+46.45);
+					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y+45);
+					scene.add(rails2Tab[i2]);
+				}
+				ligneDroite++;
+				start = end;
+				end += nbrRails[ligneDroite];
+				if (rail==="rail1"){
+					for (i = start; i < end; i++) {
+						rails1Tab[i] = rail1.clone();
+						rails1Tab[i].rotation.y=Math.PI/2.0;
+						rails1Tab[i].position.setX(rails1Tab[start-1].position.x+(i-start+1)*30+14.7);
+						rails1Tab[i].position.setY(rails1Tab[start-1].position.y+30+15);
+						scene.add(rails1Tab[i]);
+					}
+				}
+				// 8eme virage
+				if (rail==="rail2"){
+					i2++;
+					rails2Tab[i2] = rail2.clone();
+					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x+30+15);
+					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y-30-17);
+					scene.add(rails2Tab[i2]);
+				}
+				ligneDroite++;
+				start = end;
+				end += nbrRails[ligneDroite];
+				if (rail==="rail1"){
+					for (i = start; i < end; i++) {
+						rails1Tab[i] = rail1.clone();
+						rails1Tab[i].position.setX(rails1Tab[start-1].position.x+30+14.9);
+						rails1Tab[i].position.setY(rails1Tab[start-1].position.y-(i+1-start)*30-14.5);
+						scene.add(rails1Tab[i]);
+					}
+				}
+				// 9eme virage
+				if (rail==="rail2"){
+					i2++;
+					rails2Tab[i2] = rail2.clone();
+					rails2Tab[i2].rotation.y=Math.PI;
+					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x-0.3);
+					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y+2);
+					scene.add(rails2Tab[i2]);
+				}
+
+				ligneDroite++;
+				start = end;
+				end += nbrRails[ligneDroite];
+				if (rail==="rail1"){
+					for (i = start; i < end; i++) {
+						rails1Tab[i] = rail1.clone();
+						rails1Tab[i].rotation.y=Math.PI/2.0;
+						rails1Tab[i].position.setX(rails1Tab[start-1].position.x+(i-start+1)*30+14.7);
+						rails1Tab[i].position.setY(rails1Tab[start-1].position.y-30-14.5);
+						scene.add(rails1Tab[i]);
+					}
+				}
+				// 10eme virage
+				if (rail==="rail2"){
+					i2++;
+					rails2Tab[i2] = rail2.clone();
+					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x+30+15);
+					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y-30-17);
+					scene.add(rails2Tab[i2]);
+				}
+
+				ligneDroite++;
+				start = end;
+				end += nbrRails[ligneDroite];
+				if (rail==="rail1"){
+					for (i = start; i < end; i++) {
+						rails1Tab[i] = rail1.clone();
+						rails1Tab[i].position.setX(rails1Tab[start-1].position.x+30+14.9);
+						rails1Tab[i].position.setY(rails1Tab[start-1].position.y-(i+1-start)*30-15);
+						scene.add(rails1Tab[i]);
+					}
+				}
+				// 11eme virage
+				if (rail==="rail2"){
+					i2++;
+					rails2Tab[i2] = rail2.clone();
+					rails2Tab[i2].rotation.y=-Math.PI/2.0;
+					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x-46.9);
+					rails2Tab[i2].position.setY((rails1Tab[end-1].position.y-30)-15.15);
+					scene.add(rails2Tab[i2]);
+				}
+				// 12eme virage
+				if (rail==="rail2"){
+					i2++;
+					rails2Tab[i2] = rail2.clone();
+					rails2Tab[i2].rotation.y=Math.PI/2.0;
+					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x-13.5);
+					rails2Tab[i2].position.setY((rails1Tab[end-1].position.y-30)-15);
+					scene.add(rails2Tab[i2]);
+				}
+				ligneDroite++;
+				start = end;
+				end += nbrRails[ligneDroite];
+				if (rail==="rail1"){
+					for (i = start; i < end; i++) {
+						rails1Tab[i] = rail1.clone();
+						rails1Tab[i].position.setX(rails1Tab[start-1].position.x-30-30);
+						rails1Tab[i].position.setY(rails1Tab[start-1].position.y-(i+1-start)*30-2*30);
+						scene.add(rails1Tab[i]);
+					}
+				}
+				// 13eme virage
+				if (rail==="rail2"){
+					i2++;
+					rails2Tab[i2] = rail2.clone();
+					rails2Tab[i2].rotation.y=-Math.PI/2.0;
+					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x-46.9);
+					rails2Tab[i2].position.setY((rails1Tab[end-1].position.y-30)-15.15);
+					scene.add(rails2Tab[i2]);
+				}
+
+				ligneDroite++;
+				start = end;
+				end += nbrRails[ligneDroite];
+				if (rail==="rail1"){
+					for (i = start; i < end; i++) {
+						rails1Tab[i] = rail1.clone();
+						rails1Tab[i].rotation.y=Math.PI/2.0;
+						rails1Tab[i].position.setX(rails1Tab[start-1].position.x-(i-start+1)*30-15.05);
+						rails1Tab[i].position.setY(rails1Tab[start-1].position.y-30-14.8);
+						scene.add(rails1Tab[i]);
+					}
+				}
+				// 14eme virage (au centre)
+				if (rail==="rail2"){
+					i2++;
+					rails2Tab[i2] = rail2.clone();
+					rails2Tab[i2].rotation.y=Math.PI/2;
+					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x+2);
+					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y);
+					scene.add(rails2Tab[i2]);
+				}
+
+				// ajout des axes
+				if (rail==="rail1" && afficherAxes){
+					rails1Tab.forEach((rail1Tab) => {
+						rail1Tab.add(new THREE.AxesHelper(500));
+					});
+				}
+				// ajout des axes
+				if (rail==="rail2" && afficherAxes){
+					rails2Tab.forEach((rail2Tab) => {
+						rail2Tab.add(new THREE.AxesHelper(500));
+					});
+				}
+
+			}
+
+
+			var numRail = 0;
+			var deplacement = 2;
+			var marge = deplacement / 2;
+			function animateLocomotive() {
+				if (locomotive){
+					if(rails1Tab[numRail]) {
+						//console.log("loco : " + locomotive.position.x + "; " + locomotive.position.y);
+						//console.log("rail"+numRail+" : " + rails1Tab[numRail].position.x + "; " + rails1Tab[numRail].position.y);
+						if (locomotive.position.x <= rails1Tab[numRail].position.x+marge &&
+						locomotive.position.x >= rails1Tab[numRail].position.x-marge &&
+						locomotive.position.y <= rails1Tab[numRail].position.y+marge &&
+						locomotive.position.y >= rails1Tab[numRail].position.y-marge) {
+							// go to next rail
+							numRail++;
+							if (numRail>=nbrTotalRails){
+								//retour à zero
+								numRail=0;
+							}
+						} else {
+							console.log("en mouvement");
+							if (locomotive.position.x < rails1Tab[numRail].position.x-marge) {
+								locomotive.position.x += deplacement;
+							} else if (locomotive.position.x > rails1Tab[numRail].position.x+marge) {
+								locomotive.position.x -= deplacement;
+							}
+							if (locomotive.position.y < rails1Tab[numRail].position.y-marge) {
+								locomotive.position.y += deplacement;
+							} else if (locomotive.position.y > rails1Tab[numRail].position.y+marge) {
+								locomotive.position.y -= deplacement;
+							}
+						}
+					}
+				}
+			}
+
+			function animate() {
+				animateLocomotive();
+
+				controls.update();
+				render();
+				requestAnimationFrame( animate );
+			}
+
+			function render() {
+				renderer.render(scene, camera);
+			}
+
+			// gestion redimensionnement fenetre
+			function onWindowResize() {
+
+				windowHalfX = window.innerWidth / 2;
+				windowHalfY = window.innerHeight / 2;
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize(window.innerWidth, window.innerHeight);
+			}
+
+		</script>
+	</body>
+</html>

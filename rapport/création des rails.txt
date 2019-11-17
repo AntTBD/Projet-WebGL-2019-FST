@@ -1,0 +1,296 @@
+			function setupRails(){
+				var i, i2=0, ligneDroite=0;
+				var start = 0;
+				var end = nbrRails[ligneDroite];
+				//première ligne droite
+				if (rail1){
+					for (i = start; i < end; i++) {
+						//clonage du rail droit
+						rails1Tab[i] = rail1.clone();
+						//incrémentation de la position en fonction du dernier rail de la ligne précédente (et rotation si besoin)
+						rails1Tab[i].position.setX(-100);
+						rails1Tab[i].position.setY(-70-i*30);
+						//affichage
+						scene.add(rails1Tab[i]);
+					}
+				}
+				// 1er virage
+				if (rail2){
+					i2++;
+					//clonage du rail tournant
+					rails2Tab[i2] = rail2.clone();
+					// rotation pour le mettre dans le bon sens
+					rails2Tab[i2].rotation.y=-Math.PI/2.0;
+					// positionné en fonction du dernier de la ligne droite précédente
+					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x-46.9);
+					rails2Tab[i2].position.setY((rails1Tab[end-1].position.y-30)-15.15);
+					//affichage
+					scene.add(rails2Tab[i2]);
+				}
+
+				ligneDroite++;
+				start = end;
+				end += nbrRails[ligneDroite];
+				if (rail1){
+					for (i = start; i < end; i++) {
+						rails1Tab[i] = rail1.clone();
+						rails1Tab[i].rotation.y=Math.PI/2.0;
+						rails1Tab[i].position.setX(rails1Tab[start-1].position.x-(i-start+1)*30-15.05);
+						rails1Tab[i].position.setY(rails1Tab[start-1].position.y-30-14.8);
+						scene.add(rails1Tab[i]);
+					}
+				}
+				// 2eme virage
+				if (rail2){
+					i2++;
+					rails2Tab[i2] = rail2.clone();
+					rails2Tab[i2].rotation.y=-Math.PI;
+					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x-45.1);
+					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y+46.6);
+					scene.add(rails2Tab[i2]);
+				}
+
+				ligneDroite++;
+				start = end;
+				end += nbrRails[ligneDroite];
+				if (rail1){
+					for (i = start; i < end; i++) {
+						rails1Tab[i] = rail1.clone();
+						rails1Tab[i].position.setX(rails1Tab[start-1].position.x-30-14.75);
+						rails1Tab[i].position.setY(rails1Tab[start-1].position.y+(i+1-start)*30+14.75);
+						scene.add(rails1Tab[i]);
+					}
+				}
+				// 3eme virage
+				if(rail2){
+					i2++;
+					rails2Tab[i2] = rail2.clone();
+					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x);
+					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y-1.8);
+					scene.add(rails2Tab[i2]);
+				}
+
+				ligneDroite++;
+				start = end;
+				end += nbrRails[ligneDroite];
+				if (rail1){
+					for (i = start; i < end; i++) {
+						rails1Tab[i] = rail1.clone();
+						rails1Tab[i].rotation.y=Math.PI/2.0;
+						rails1Tab[i].position.setX(rails1Tab[start-1].position.x-(i+1-start)*30-15);
+						rails1Tab[i].position.setY(rails1Tab[start-1].position.y+30+15.25);
+						scene.add(rails1Tab[i]);
+					}
+				}
+				// 4eme virage
+				if (rail2){
+					i2++;
+					rails2Tab[i2] = rail2.clone();
+					rails2Tab[i2].rotation.y=-Math.PI;
+					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x-45.1);
+					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y+46.6);
+					scene.add(rails2Tab[i2]);
+				}
+
+				ligneDroite++;
+				start = end;
+				end += nbrRails[ligneDroite];
+				if (rail1){
+					for (i = start; i < end; i++) {
+						rails1Tab[i] = rail1.clone();
+						rails1Tab[i].position.setX(rails1Tab[start-1].position.x-30-14.75);
+						rails1Tab[i].position.setY(rails1Tab[start-1].position.y+(i+1-start)*30+14.75);
+						scene.add(rails1Tab[i]);
+					}
+				}
+				// 5eme virage
+				if (rail2){
+					i2++;
+					rails2Tab[i2] = rail2.clone();
+					rails2Tab[i2].rotation.y=Math.PI/2;
+					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x+46.45);
+					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y+45);
+					scene.add(rails2Tab[i2]);
+				}
+				ligneDroite++;
+				start = end;
+				end += nbrRails[ligneDroite];
+				if (rail1){
+					for (i = start; i < end; i++) {
+						rails1Tab[i] = rail1.clone();
+						rails1Tab[i].rotation.y=Math.PI/2.0;
+						rails1Tab[i].position.setX(rails1Tab[start-1].position.x+(i-start+1)*30+14.7);
+						rails1Tab[i].position.setY(rails1Tab[start-1].position.y+30+15);
+						scene.add(rails1Tab[i]);
+					}
+				}
+				// 6eme virage
+				if (rail2){
+					i2++;
+					rails2Tab[i2] = rail2.clone();
+					rails2Tab[i2].rotation.y=-Math.PI/2;
+					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x-2);
+					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y-0.4);
+					scene.add(rails2Tab[i2]);
+				}
+
+				ligneDroite++;
+				start = end;
+				end += nbrRails[ligneDroite];
+				if (rail1){
+					for (i = start; i < end; i++) {
+						rails1Tab[i] = rail1.clone();
+						rails1Tab[i].position.setX(rails1Tab[start-1].position.x+30+14.9);
+						rails1Tab[i].position.setY(rails1Tab[start-1].position.y+(i+1-start)*30+14.75);
+						scene.add(rails1Tab[i]);
+					}
+				}
+				// 7eme virage
+				if (rail2){
+					i2++;
+					rails2Tab[i2] = rail2.clone();
+					rails2Tab[i2].rotation.y=Math.PI/2;
+					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x+46.45);
+					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y+45);
+					scene.add(rails2Tab[i2]);
+				}
+				ligneDroite++;
+				start = end;
+				end += nbrRails[ligneDroite];
+				if (rail1){
+					for (i = start; i < end; i++) {
+						rails1Tab[i] = rail1.clone();
+						rails1Tab[i].rotation.y=Math.PI/2.0;
+						rails1Tab[i].position.setX(rails1Tab[start-1].position.x+(i-start+1)*30+14.7);
+						rails1Tab[i].position.setY(rails1Tab[start-1].position.y+30+15);
+						scene.add(rails1Tab[i]);
+					}
+				}
+				// 8eme virage
+				if (rail2){
+					i2++;
+					rails2Tab[i2] = rail2.clone();
+					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x+30+15);
+					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y-30-17);
+					scene.add(rails2Tab[i2]);
+				}
+				ligneDroite++;
+				start = end;
+				end += nbrRails[ligneDroite];
+				if (rail1){
+					for (i = start; i < end; i++) {
+						rails1Tab[i] = rail1.clone();
+						rails1Tab[i].position.setX(rails1Tab[start-1].position.x+30+14.9);
+						rails1Tab[i].position.setY(rails1Tab[start-1].position.y-(i+1-start)*30-14.5);
+						scene.add(rails1Tab[i]);
+					}
+				}
+				// 9eme virage
+				if (rail2){
+					i2++;
+					rails2Tab[i2] = rail2.clone();
+					rails2Tab[i2].rotation.y=Math.PI;
+					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x-0.3);
+					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y+2);
+					scene.add(rails2Tab[i2]);
+				}
+
+				ligneDroite++;
+				start = end;
+				end += nbrRails[ligneDroite];
+				if (rail1){
+					for (i = start; i < end; i++) {
+						rails1Tab[i] = rail1.clone();
+						rails1Tab[i].rotation.y=Math.PI/2.0;
+						rails1Tab[i].position.setX(rails1Tab[start-1].position.x+(i-start+1)*30+14.7);
+						rails1Tab[i].position.setY(rails1Tab[start-1].position.y-30-14.5);
+						scene.add(rails1Tab[i]);
+					}
+				}
+				// 10eme virage
+				if (rail2){
+					i2++;
+					rails2Tab[i2] = rail2.clone();
+					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x+30+15);
+					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y-30-17);
+					scene.add(rails2Tab[i2]);
+				}
+
+				ligneDroite++;
+				start = end;
+				end += nbrRails[ligneDroite];
+				if (rail1){
+					for (i = start; i < end; i++) {
+						rails1Tab[i] = rail1.clone();
+						rails1Tab[i].position.setX(rails1Tab[start-1].position.x+30+14.9);
+						rails1Tab[i].position.setY(rails1Tab[start-1].position.y-(i+1-start)*30-15);
+						scene.add(rails1Tab[i]);
+					}
+				}
+				// 11eme virage
+				if (rail2){
+					i2++;
+					rails2Tab[i2] = rail2.clone();
+					rails2Tab[i2].rotation.y=-Math.PI/2.0;
+					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x-46.9);
+					rails2Tab[i2].position.setY((rails1Tab[end-1].position.y-30)-15.15);
+					scene.add(rails2Tab[i2]);
+				}
+				// 12eme virage
+				if (rail2){
+					i2++;
+					rails2Tab[i2] = rail2.clone();
+					rails2Tab[i2].rotation.y=Math.PI/2.0;
+					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x-13.5);
+					rails2Tab[i2].position.setY((rails1Tab[end-1].position.y-30)-15);
+					scene.add(rails2Tab[i2]);
+				}
+				ligneDroite++;
+				start = end;
+				end += nbrRails[ligneDroite];
+				if (rail1){
+					for (i = start; i < end; i++) {
+						rails1Tab[i] = rail1.clone();
+						rails1Tab[i].position.setX(rails1Tab[start-1].position.x-30-30);
+						rails1Tab[i].position.setY(rails1Tab[start-1].position.y-(i+1-start)*30-2*30);
+						scene.add(rails1Tab[i]);
+					}
+				}
+				// 13eme virage
+				if (rail2){
+					i2++;
+					rails2Tab[i2] = rail2.clone();
+					rails2Tab[i2].rotation.y=-Math.PI/2.0;
+					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x-46.9);
+					rails2Tab[i2].position.setY((rails1Tab[end-1].position.y-30)-15.15);
+					scene.add(rails2Tab[i2]);
+				}
+
+				ligneDroite++;
+				start = end;
+				end += nbrRails[ligneDroite];
+				if (rail1){
+					for (i = start; i < end; i++) {
+						rails1Tab[i] = rail1.clone();
+						rails1Tab[i].rotation.y=Math.PI/2.0;
+						rails1Tab[i].position.setX(rails1Tab[start-1].position.x-(i-start+1)*30-15.05);
+						rails1Tab[i].position.setY(rails1Tab[start-1].position.y-30-14.8);
+						scene.add(rails1Tab[i]);
+					}
+				}
+				// 14eme virage (au centre)
+				if (rail2){
+					i2++;
+					rails2Tab[i2] = rail2.clone();
+					rails2Tab[i2].rotation.y=Math.PI/2;
+					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x+2);
+					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y);
+					scene.add(rails2Tab[i2]);
+				}
+
+				if (rail2){
+					for (var j = 0; j < rails2Tab.length; j++) {
+						rails2Tab[j].add(new THREE.AxesHelper(100));
+					}
+				}
+			}
