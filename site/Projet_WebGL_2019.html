@@ -27,7 +27,9 @@
 
 			var object;
 
-			var rail1, rail2, terrain, locomotive;
+			var /*rail1, rail2,*/ terrain, locomotive;
+			var geometryRail1, geometryRail2;
+			var materialRail1, materialRail2;
 
 			//afficher ou non les axes des différents objets
 			var afficherAxes = false;
@@ -42,6 +44,29 @@
 			for (var i = 0; i < nbrRails.length; i++) {
 				nbrTotalRails+=nbrRails[i];
 			}
+
+			//gravier des rails
+			// materiau transparent et opaque pour mettre sur le cube contenant la texture des gravier
+			var autreFaces = new THREE.MeshBasicMaterial({color: 0xffffff, opacity: 0, transparent: true});
+
+			// cubes avec toutes les faces transparentes sauf une pour la texture des graviers
+			var materialGravierRail1 = [
+				autreFaces,autreFaces,
+				new THREE.MeshBasicMaterial({
+					map: THREE.ImageUtils.loadTexture("data/textures/Rail/taslarHSurface_Color2.jpg")
+				}),autreFaces,autreFaces,autreFaces];
+			var materialGravierRail2 = [
+				autreFaces,autreFaces,
+				new THREE.MeshBasicMaterial({
+					map: THREE.ImageUtils.loadTexture("data/textures/Rail/taslarCSurface_Color3.png"),
+					transparent: true
+				}),autreFaces,autreFaces,autreFaces];
+
+
+			// animation train
+			var numRail = 0;
+			var deplacement = 1;
+			var marge = deplacement / 2;
 
 			//premier lancement des functions
 			init();
@@ -122,15 +147,15 @@
 							material.map = diffuseTexture;
 
 
-							// bumps
-							//material.bumpMap = bumpTexture;
-							//material.bumpScale = 0.3;
+							// bumps (carte de niveau de hauteur à bas relief) perturbation de normal
+							material.bumpMap = bumpTexture;
+							material.bumpScale = 0.3;
 
 							// glow
 							material.emissive = new THREE.Color(0xffffff);//couleur blanche pour la neige
 							material.emissiveMap = emissiveTexture;
 
-							// specular
+							// specular (relief)
 							//material.specularMap = specularTexture;
 
 							// enable shadows
@@ -185,62 +210,50 @@
 
 				// Rail droit
 				objLoader.load('data/models/rail1.obj', function (obj) {
-					rail1 = obj;
-					rail1.rotateX(90.0 * 2.0 * Math.PI / 360.0);
-					rail1.scale.set(0.1, 0.1, 0.1);
-					rail1.translateX(-100.0);
-					rail1.translateZ(100.0);
-					rail1.translateY(10.0);
-
+					obj.traverse( function ( child ) {
+						if (child.isMesh) {
+							var materialRail1Temp = new THREE.ImageUtils.loadTexture("data/textures/Rail/rayHSurface_Color.jpg");
+							child.material.map = materialRail1Temp;
+							geometryRail1 = child.geometry;
+							materialRail1 = child.material;
+						}
+					});
 
 					setupRails("rail1");
 
-					//scene.add(rail1);
 				});
 
 				// Rail tournant
 				//chemin texture 'data/textures/Rails/rayCSurface_Color.jpg'
 				//var JPGFile = 'data/textures/Rails/rayCSurface_Color.jpg';
 				objLoader.load('data/models/rail2.obj', function (obj) {
-					rail2 = obj;
-
-					rail2.rotateX(90.0 * 2.0 * Math.PI / 360.0);
-					rail2.scale.set(0.1, 0.1, 0.1);
-					rail2.translateX(-100.0);
-					rail2.translateZ(100.0);
-					rail2.translateY(10.0);
-
-
-					//ne marche pas:
-					rail2.traverse( function ( child ) {
+					//afin d'optimiser le nombre d'obj on savee dans 2 var le material et la geometry afin de creer des mesh sans creer d'autres obj ou clone
+					obj.traverse( function ( child ) {
 						if (child.isMesh) {
-							var JPGFile = 'data/textures/Rails/rayCSurface_Color.jpg';
-							//var texture = new THREE.ImageUtils.loadTexture( JPGFile);
-							//var texture = new textLoader.load(JPGFile);
-							//child.material.map = texture;
+							var materialRail2Temp = new THREE.ImageUtils.loadTexture("data/textures/Rail/rayCSurface_Color.jpg");
+							child.material.map = materialRail2Temp;
+							geometryRail2 = child.geometry;
+							materialRail2 = child.material;
 						}
 					});
 
 					setupRails("rail2");
-
-					//scene.add(rail2);
 				});
 
 				// Locomotive
-				objLoader.load('data/models/locomotive.obj', function (obj) {
+				objLoader.load('data/models/locomotiveCentree.obj', function (obj) {
 					locomotive = obj;
 
 					locomotive.rotateX(90.0 * 2.0 * Math.PI / 360.0);
-					locomotive.scale.set(0.3, 0.3, 0.3);
-					locomotive.translateX(-100.0);
+					locomotive.scale.set(0.5, 0.5, 0.5);
+					locomotive.translateX(-100.5);
 					locomotive.translateZ(100.0);
-					locomotive.translateY(10.0);
+					locomotive.translateY(10.2);
 
 
 					locomotive.traverse(function (child) {
 						if (child.isMesh)
-							child.material = material;
-
+							child.material = material;//new THREE.MeshStandardMaterial( { color: 0x2194CE } );
 					});
 
 					//if (afficherAxes){
@@ -252,6 +265,27 @@
 				});
 			}
 
+			function initRails(rail){
+				rail.rotateX(90.0 * 2.0 * Math.PI / 360.0);
+				rail.scale.set(0.1, 0.1, 0.1);
+				rail.translateX(-100.0);
+				rail.translateZ(100.0);
+				rail.translateY(10.0);
+				if(rail.geometry === geometryRail1){
+					var cube1 = new THREE.Mesh(new THREE.CubeGeometry(300, 0, 300), materialGravierRail1);
+					cube1.position.y = -2;
+					rail.add( cube1 );
+				} else if(rail.geometry === geometryRail2){
+					var cube2 = new THREE.Mesh(new THREE.CubeGeometry(455, 0, 450), materialGravierRail2);
+					cube2.position.x = -75;
+					cube2.position.y = -2;
+					cube2.position.z = -395;
+					cube2.rotation.y=-Math.PI/2+Math.PI;
+					rail.add( cube2 );
+				}
+				return rail;
+			}
+
 			function setupRails(rail) {
 				var i, i2=0, ligneDroite=0;
 				var start = 0;
@@ -259,8 +293,11 @@
 				//première ligne droite
 				if (rail==="rail1"){
 					for (i = start; i < end; i++) {
+
 						//clonage du rail droit
-						rails1Tab[i] = rail1.clone();
+						//rails1Tab[i] = rail1.clone();
+						//creation d'une new mesh pour chaque rail avec la geometry et le materiau de base
+						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1, materialRail1));
 						//incrémentation de la position en fonction du dernier rail de la ligne précédente (et rotation si besoin)
 						rails1Tab[i].position.setX(-100);
 						rails1Tab[i].position.setY(-70-i*30);
@@ -272,7 +309,9 @@
 				if (rail==="rail2"){
 					i2++;
 					//clonage du rail tournant
-					rails2Tab[i2] = rail2.clone();
+					//rails2Tab[i2] = rail2.clone();
+					//creation d'une new mesh pour chaque rail avec la geometry et le materiau de base
+					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2, materialRail2));
 					// rotation pour le mettre dans le bon sens
 					rails2Tab[i2].rotation.y=-Math.PI/2.0;
 					// positionné en fonction du dernier de la ligne droite précédente
@@ -287,8 +326,8 @@
 				end += nbrRails[ligneDroite];
 				if (rail==="rail1"){
 					for (i = start; i < end; i++) {
-						rails1Tab[i] = rail1.clone();
-						rails1Tab[i].rotation.y=Math.PI/2.0;
+						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1, materialRail1));
+						rails1Tab[i].rotation.y=Math.PI/2.0+Math.PI;
 						rails1Tab[i].position.setX(rails1Tab[start-1].position.x-(i-start+1)*30-15.05);
 						rails1Tab[i].position.setY(rails1Tab[start-1].position.y-30-14.8);
 						scene.add(rails1Tab[i]);
@@ -297,7 +336,7 @@
 				// 2eme virage
 				if (rail==="rail2"){
 					i2++;
-					rails2Tab[i2] = rail2.clone();
+					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2, materialRail2));
 					rails2Tab[i2].rotation.y=-Math.PI;
 					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x-45.1);
 					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y+46.6);
@@ -309,7 +348,8 @@
 				end += nbrRails[ligneDroite];
 				if (rail==="rail1"){
 					for (i = start; i < end; i++) {
-						rails1Tab[i] = rail1.clone();
+						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1, materialRail1));
+						rails1Tab[i].rotation.y=Math.PI;
 						rails1Tab[i].position.setX(rails1Tab[start-1].position.x-30-14.75);
 						rails1Tab[i].position.setY(rails1Tab[start-1].position.y+(i+1-start)*30+14.75);
 						scene.add(rails1Tab[i]);
@@ -318,7 +358,7 @@
 				// 3eme virage
 				if(rail==="rail2"){
 					i2++;
-					rails2Tab[i2] = rail2.clone();
+					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2, materialRail2));
 					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x);
 					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y-1.8);
 					scene.add(rails2Tab[i2]);
@@ -329,8 +369,8 @@
 				end += nbrRails[ligneDroite];
 				if (rail==="rail1"){
 					for (i = start; i < end; i++) {
-						rails1Tab[i] = rail1.clone();
-						rails1Tab[i].rotation.y=Math.PI/2.0;
+						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1, materialRail1));
+						rails1Tab[i].rotation.y=Math.PI/2.0+Math.PI;
 						rails1Tab[i].position.setX(rails1Tab[start-1].position.x-(i+1-start)*30-15);
 						rails1Tab[i].position.setY(rails1Tab[start-1].position.y+30+15.25);
 						scene.add(rails1Tab[i]);
@@ -339,7 +379,7 @@
 				// 4eme virage
 				if (rail==="rail2"){
 					i2++;
-					rails2Tab[i2] = rail2.clone();
+					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2, materialRail2));
 					rails2Tab[i2].rotation.y=-Math.PI;
 					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x-45.1);
 					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y+46.6);
@@ -351,7 +391,8 @@
 				end += nbrRails[ligneDroite];
 				if (rail==="rail1"){
 					for (i = start; i < end; i++) {
-						rails1Tab[i] = rail1.clone();
+						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1, materialRail1));
+						rails1Tab[i].rotation.y=Math.PI;
 						rails1Tab[i].position.setX(rails1Tab[start-1].position.x-30-14.75);
 						rails1Tab[i].position.setY(rails1Tab[start-1].position.y+(i+1-start)*30+14.75);
 						scene.add(rails1Tab[i]);
@@ -360,7 +401,7 @@
 				// 5eme virage
 				if (rail==="rail2"){
 					i2++;
-					rails2Tab[i2] = rail2.clone();
+					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2, materialRail2));
 					rails2Tab[i2].rotation.y=Math.PI/2;
 					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x+46.45);
 					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y+45);
@@ -371,7 +412,7 @@
 				end += nbrRails[ligneDroite];
 				if (rail==="rail1"){
 					for (i = start; i < end; i++) {
-						rails1Tab[i] = rail1.clone();
+						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1, materialRail1));
 						rails1Tab[i].rotation.y=Math.PI/2.0;
 						rails1Tab[i].position.setX(rails1Tab[start-1].position.x+(i-start+1)*30+14.7);
 						rails1Tab[i].position.setY(rails1Tab[start-1].position.y+30+15);
@@ -381,7 +422,7 @@
 				// 6eme virage
 				if (rail==="rail2"){
 					i2++;
-					rails2Tab[i2] = rail2.clone();
+					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2, materialRail2));
 					rails2Tab[i2].rotation.y=-Math.PI/2;
 					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x-2);
 					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y-0.4);
@@ -393,7 +434,8 @@
 				end += nbrRails[ligneDroite];
 				if (rail==="rail1"){
 					for (i = start; i < end; i++) {
-						rails1Tab[i] = rail1.clone();
+						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1, materialRail1));
+						rails1Tab[i].rotation.y=Math.PI;
 						rails1Tab[i].position.setX(rails1Tab[start-1].position.x+30+14.9);
 						rails1Tab[i].position.setY(rails1Tab[start-1].position.y+(i+1-start)*30+14.75);
 						scene.add(rails1Tab[i]);
@@ -402,7 +444,7 @@
 				// 7eme virage
 				if (rail==="rail2"){
 					i2++;
-					rails2Tab[i2] = rail2.clone();
+					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2, materialRail2));
 					rails2Tab[i2].rotation.y=Math.PI/2;
 					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x+46.45);
 					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y+45);
@@ -413,7 +455,7 @@
 				end += nbrRails[ligneDroite];
 				if (rail==="rail1"){
 					for (i = start; i < end; i++) {
-						rails1Tab[i] = rail1.clone();
+						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1, materialRail1));
 						rails1Tab[i].rotation.y=Math.PI/2.0;
 						rails1Tab[i].position.setX(rails1Tab[start-1].position.x+(i-start+1)*30+14.7);
 						rails1Tab[i].position.setY(rails1Tab[start-1].position.y+30+15);
@@ -423,7 +465,7 @@
 				// 8eme virage
 				if (rail==="rail2"){
 					i2++;
-					rails2Tab[i2] = rail2.clone();
+					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2, materialRail2));
 					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x+30+15);
 					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y-30-17);
 					scene.add(rails2Tab[i2]);
@@ -433,7 +475,7 @@
 				end += nbrRails[ligneDroite];
 				if (rail==="rail1"){
 					for (i = start; i < end; i++) {
-						rails1Tab[i] = rail1.clone();
+						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1, materialRail1));
 						rails1Tab[i].position.setX(rails1Tab[start-1].position.x+30+14.9);
 						rails1Tab[i].position.setY(rails1Tab[start-1].position.y-(i+1-start)*30-14.5);
 						scene.add(rails1Tab[i]);
@@ -442,7 +484,7 @@
 				// 9eme virage
 				if (rail==="rail2"){
 					i2++;
-					rails2Tab[i2] = rail2.clone();
+					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2, materialRail2));
 					rails2Tab[i2].rotation.y=Math.PI;
 					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x-0.3);
 					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y+2);
@@ -454,7 +496,7 @@
 				end += nbrRails[ligneDroite];
 				if (rail==="rail1"){
 					for (i = start; i < end; i++) {
-						rails1Tab[i] = rail1.clone();
+						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1, materialRail1));
 						rails1Tab[i].rotation.y=Math.PI/2.0;
 						rails1Tab[i].position.setX(rails1Tab[start-1].position.x+(i-start+1)*30+14.7);
 						rails1Tab[i].position.setY(rails1Tab[start-1].position.y-30-14.5);
@@ -464,7 +506,7 @@
 				// 10eme virage
 				if (rail==="rail2"){
 					i2++;
-					rails2Tab[i2] = rail2.clone();
+					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2, materialRail2));
 					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x+30+15);
 					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y-30-17);
 					scene.add(rails2Tab[i2]);
@@ -475,7 +517,7 @@
 				end += nbrRails[ligneDroite];
 				if (rail==="rail1"){
 					for (i = start; i < end; i++) {
-						rails1Tab[i] = rail1.clone();
+						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1, materialRail1));
 						rails1Tab[i].position.setX(rails1Tab[start-1].position.x+30+14.9);
 						rails1Tab[i].position.setY(rails1Tab[start-1].position.y-(i+1-start)*30-15);
 						scene.add(rails1Tab[i]);
@@ -484,7 +526,7 @@
 				// 11eme virage
 				if (rail==="rail2"){
 					i2++;
-					rails2Tab[i2] = rail2.clone();
+					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2, materialRail2));
 					rails2Tab[i2].rotation.y=-Math.PI/2.0;
 					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x-46.9);
 					rails2Tab[i2].position.setY((rails1Tab[end-1].position.y-30)-15.15);
@@ -493,7 +535,7 @@
 				// 12eme virage
 				if (rail==="rail2"){
 					i2++;
-					rails2Tab[i2] = rail2.clone();
+					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2, materialRail2));
 					rails2Tab[i2].rotation.y=Math.PI/2.0;
 					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x-13.5);
 					rails2Tab[i2].position.setY((rails1Tab[end-1].position.y-30)-15);
@@ -504,7 +546,7 @@
 				end += nbrRails[ligneDroite];
 				if (rail==="rail1"){
 					for (i = start; i < end; i++) {
-						rails1Tab[i] = rail1.clone();
+						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1, materialRail1));
 						rails1Tab[i].position.setX(rails1Tab[start-1].position.x-30-30);
 						rails1Tab[i].position.setY(rails1Tab[start-1].position.y-(i+1-start)*30-2*30);
 						scene.add(rails1Tab[i]);
@@ -513,7 +555,7 @@
 				// 13eme virage
 				if (rail==="rail2"){
 					i2++;
-					rails2Tab[i2] = rail2.clone();
+					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2, materialRail2));
 					rails2Tab[i2].rotation.y=-Math.PI/2.0;
 					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x-46.9);
 					rails2Tab[i2].position.setY((rails1Tab[end-1].position.y-30)-15.15);
@@ -525,8 +567,8 @@
 				end += nbrRails[ligneDroite];
 				if (rail==="rail1"){
 					for (i = start; i < end; i++) {
-						rails1Tab[i] = rail1.clone();
-						rails1Tab[i].rotation.y=Math.PI/2.0;
+						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1, materialRail1));
+						rails1Tab[i].rotation.y=Math.PI/2.0+Math.PI;
 						rails1Tab[i].position.setX(rails1Tab[start-1].position.x-(i-start+1)*30-15.05);
 						rails1Tab[i].position.setY(rails1Tab[start-1].position.y-30-14.8);
 						scene.add(rails1Tab[i]);
@@ -535,7 +577,7 @@
 				// 14eme virage (au centre)
 				if (rail==="rail2"){
 					i2++;
-					rails2Tab[i2] = rail2.clone();
+					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2, materialRail2));
 					rails2Tab[i2].rotation.y=Math.PI/2;
 					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x+2);
 					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y);
@@ -558,9 +600,6 @@
 			}
 
 
-			var numRail = 0;
-			var deplacement = 2;
-			var marge = deplacement / 2;
 			function animateLocomotive() {
 				if (locomotive){
 					if(rails1Tab[numRail]) {
@@ -588,6 +627,7 @@
 							} else if (locomotive.position.y > rails1Tab[numRail].position.y+marge) {
 								locomotive.position.y -= deplacement;
 							}
+							locomotive.rotation.y=rails1Tab[numRail].rotation.y;
 						}
 					}
 				}
