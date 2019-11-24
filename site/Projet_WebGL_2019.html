@@ -12,15 +12,22 @@
 		<div id="info">
 			Projet WebGL 2019 - Université de Limoges - Jonas FRANCESHI - Martin MORAND - Antoine TABARAUD
 		</div>
+		<script language="javascript">
+			var derniereModif=document.lastModified;
+			var dateModif = new Date(derniereModif);
+			console.log("Dernière modification le "+dateModif);
+		</script>
+		<script src="./threejs/Tween.min.js"></script>
 		<script type="module">
-
 			import * as THREE from './threejs/three.module.js';
+			import { MTLLoader } from './threejs/MTLLoader.js';
 			import { OBJLoader } from './threejs/OBJLoader.js';
 			import { TrackballControls } from './threejs/TrackballControls.js';
 
+
 			var container;
 
-			var camera, scene, renderer, controls;
+			var camera, scene, renderer, controls, light;
 
 			var windowHalfX = window.innerWidth / 2;
 			var windowHalfY = window.innerHeight / 2;
@@ -28,8 +35,8 @@
 			var object;
 
 			var /*rail1, rail2,*/ terrain, locomotive;
-			var geometryRail1, geometryRail2;
-			var materialRail1, materialRail2;
+			var geometryRail1=[], geometryRail2=[];
+			var materialRail1=[], materialRail2=[];
 
 			//afficher ou non les axes des différents objets
 			var afficherAxes = false;
@@ -41,10 +48,12 @@
 			var nbrRails = [20, 11, 14, 7, 25, 6, 4, 23, 4, 13, 12, 5, 22];
 			//calcul du nombre total de rails (utilisé dans l'animation locomotive)
 			var nbrTotalRails=0;
-			for (var i = 0; i < nbrRails.length; i++) {
+			for (let i = 0; i < nbrRails.length; i++) {
 				nbrTotalRails+=nbrRails[i];
 			}
+			console.log("nb total de rail1: "+nbrTotalRails);
 
+			/*
 			//gravier des rails
 			// materiau transparent et opaque pour mettre sur le cube contenant la texture des gravier
 			var autreFaces = new THREE.MeshBasicMaterial({color: 0xffffff, opacity: 0, transparent: true});
@@ -61,16 +70,20 @@
 					map: THREE.ImageUtils.loadTexture("data/textures/Rail/taslarCSurface_Color3.png"),
 					transparent: true
 				}),autreFaces,autreFaces,autreFaces];
+			*/
 
 
 			// animation train
 			var numRail = 0;
-			var deplacement = 1;
-			var marge = deplacement / 2;
+			//var deplacement = 1;
+			//var marge = deplacement / 2;
+
+			var tween;
+			var target1;
 
 			//premier lancement des functions
 			init();
-			animate();
+			animate(new Date().getTime());
 
 			function init() {
 				container = document.createElement('div');
@@ -90,6 +103,9 @@
 				createLights();
 				loadModels();
 
+
+
+
 				// gestion redimensionnement fenetre
 				window.addEventListener( 'resize', onWindowResize, false );
 			}
@@ -100,14 +116,15 @@
 				renderer.setPixelRatio(window.devicePixelRatio);
 				renderer.setSize(window.innerWidth, window.innerHeight);
 				renderer.setClearColor(0xAAAAAA, 1);
+				renderer.shadowMap.enabled = true;
 				container.appendChild(renderer.domElement);
 			}
 
 			// camera
 			function createCamera() {
 				camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 4000);
-				camera.position.z = 400;
-				camera.position.y = -500;
+				camera.position.z = 700;
+				camera.position.y = -1100;
 
 				camera.lookAt(0, 0, 0);
 				scene.add(camera);
@@ -120,22 +137,30 @@
 
 			// lights
 			function createLights() {
-				var light = new THREE.PointLight(0xFFFFFF, 1.0);
-				light.position.set(0, 500, 500);
+				light = new THREE.PointLight(0xFFFFFF, 1.0);
+				light.position.set(0, -500, 500);
+				// enable shadows
+				light.receiveShadow = true;
+				light.castShadow = true;
 				scene.add(light);
+
+				//création d'une boule pour savoir où est la lumiere
+				var lightSphere = new THREE.Mesh(new THREE.SphereBufferGeometry(50,20,20),
+						new THREE.MeshStandardMaterial({emissive: 0xffffff,emissiveIntensity: light.intensity} ) );
+				lightSphere.castShadow = true;
+				light.add(lightSphere);
 			}
 
 
 			// load all models
 			function loadModels() {
-				var material = new THREE.MeshNormalMaterial();
 
 				// http://www.smartjava.org/content/render-3d-star-wars-force-awakens-models-blender-and-threejs/
 				var textLoader = new THREE.TextureLoader();
 				var diffuseTexture = textLoader.load("data/textures/Terrain/diffuse.png");
 				var bumpTexture = textLoader.load("data/textures/Terrain/flows.png");
 				var emissiveTexture = textLoader.load("data/textures/Terrain/hight.png");//montagnes (color white)
-				var specularTexture = textLoader.load("data/textures/Terrain/flows.png");
+				//var specularTexture = textLoader.load("data/textures/Terrain/flows.png");
 
 				function loadModel() {
 					terrain.traverse(function (child) {
@@ -148,31 +173,24 @@
 
 
 							// bumps (carte de niveau de hauteur à bas relief) perturbation de normal
-							material.bumpMap = bumpTexture;
-							material.bumpScale = 0.3;
+						//	material.bumpMap = bumpTexture;
+						//	material.bumpScale = -1.0;
+
 
 							// glow
 							material.emissive = new THREE.Color(0xffffff);//couleur blanche pour la neige
 							material.emissiveMap = emissiveTexture;
+							//material.emissive = new THREE.Color(0x0083ff);//couleur blanche pour la neige
+							//material.emissiveMap = bumpTexture;
 
 							// specular (relief)
-							//material.specularMap = specularTexture;
+							//material.specularMap = bumpTexture;
 
-							// enable shadows
-							//child.receiveShadow = true;
-							//child.castShadow = true;
 						}
-
-
-						//prof
-						/*if (child.isMesh){
-							// tbd
-							//var material = new THREE.ImageUtils.loadTexture( 'data/textures/Terrain/diffuse.png');
-							child.material.map = material;
-						}*/
 					});
 
 					scene.add(terrain);
+
 				}
 
 				// LoadingManager
@@ -190,88 +208,166 @@
 
 
 				// OBJLoader
-				var objLoader = new OBJLoader(manager);
+				var objLoader = new OBJLoader(manager)
+						.setPath( '/data/modifs/' );
 				objLoader.onError = function ( error ) {
 					console.log("Error OBJLoader : " + error);
 				};
 				objLoader.onProgress = function ( xhr ) {
-					console.log(( xhr.loaded / xhr.total * 100 ) + '% loaded' );
+					console.log("Objet: " + ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
+				};
+				// MTLLoader
+				var mtlLoader = new MTLLoader(manager);
+				mtlLoader.setPath( '/data/' );
+				mtlLoader.onError = function ( error ) {
+					console.log("Error MTLLoader : " + error);
+				};
+				mtlLoader.onProgress = function ( xhr ) {
+					console.log("Texture: " + ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
 				};
 
 				// Terrain
-				objLoader.load('data/models/TerrainLod4.obj', function (obj) {
+				objLoader.load('_TerrainLod4.obj', function (obj) {
 					terrain = obj;
+					// enable shadows
+					terrain.receiveShadow = true;
+					terrain.castShadow = true;
 
 					if (afficherAxes){
 						var axesTerrain = new THREE.AxesHelper(100);
 						terrain.add(axesTerrain);
 					}
-				});
 
-				// Rail droit
-				objLoader.load('data/models/rail1.obj', function (obj) {
-					obj.traverse( function ( child ) {
-						if (child.isMesh) {
-							var materialRail1Temp = new THREE.ImageUtils.loadTexture("data/textures/Rail/rayHSurface_Color.jpg");
-							child.material.map = materialRail1Temp;
-							geometryRail1 = child.geometry;
-							materialRail1 = child.material;
-						}
+
+					// Rail droit
+					mtlLoader.load( 'modifs/rail1.mtl', function ( materials ) {
+						materials.preload();
+						objLoader.setMaterials( materials )
+								.load( 'rail1.obj', function ( obj ) {
+									obj.traverse( function ( child ) {
+										if (child.isMesh) {
+											//var materialRail1Temp = new THREE.ImageUtils.loadTexture("data/textures/Rail/rayHSurface_Color.jpg");
+											//child.material.map = materialRail1Temp;
+											//geometryRail1 = child.geometry;
+											//materialRail1 = child.material;
+
+											//console.log(child);
+											geometryRail1.push(child.geometry);
+											materialRail1.push(child.material);
+										}
+									});
+									setupRails("rail1");
+
+									// Rail tournant
+									mtlLoader.load( 'modifs/rail2.mtl', function ( materials ) {
+										materials.preload();
+										objLoader.setMaterials(materials)
+												.load('rail2.obj', function (obj) {
+													//afin d'optimiser le nombre d'obj on savee dans 2 var le material et la geometry afin de creer des mesh sans creer d'autres obj ou clone
+													obj.traverse(function (child) {
+														if (child.isMesh) {
+															//var materialRail2Temp = new THREE.ImageUtils.loadTexture("data/textures/Rail/rayCSurface_Color.jpg");
+															//child.material.map = materialRail2Temp;
+															//geometryRail2 = child.geometry;
+															//materialRail2 = child.material;
+
+															//console.log(child);
+															geometryRail2.push(child.geometry);
+															materialRail2.push(child.material);
+														}
+													});
+													setupRails("rail2");
+
+													// Locomotive
+													mtlLoader.load( 'modifs/resicza_loco.mtl', function ( materials ) {
+														materials.preload();
+														objLoader.setMaterials(materials)
+																.load('resicza_loco.obj', function (obj) {
+																	locomotive = obj;
+
+																	locomotive.rotateX(90.0 * 2.0 * Math.PI / 360.0);
+																	locomotive.scale.set(1.3, 1.3, 1.3);
+																	locomotive.translateX(-100);
+																	locomotive.translateZ(100);
+																	locomotive.translateY(10.2);
+
+																	// enable shadows
+																	locomotive.receiveShadow = true;
+																	locomotive.castShadow = true;
+
+
+																	/*locomotive.traverse(function (child) {
+                                                                        if (child.isMesh)
+                                                                            child.material = material;//new THREE.MeshStandardMaterial( { color: 0x2194CE } );
+                                                                    });*/
+
+																	if (afficherAxes){
+																	var axesLocomotive = new THREE.AxesHelper(200);
+																	locomotive.add(axesLocomotive);
+																	}
+
+
+																	locoCreateLight();
+																	tweenInit();
+																	scene.add(locomotive);
+																});
+													});
+												});
+									});
+								});
 					});
-
-					setupRails("rail1");
-
 				});
 
-				// Rail tournant
-				//chemin texture 'data/textures/Rails/rayCSurface_Color.jpg'
-				//var JPGFile = 'data/textures/Rails/rayCSurface_Color.jpg';
-				objLoader.load('data/models/rail2.obj', function (obj) {
-					//afin d'optimiser le nombre d'obj on savee dans 2 var le material et la geometry afin de creer des mesh sans creer d'autres obj ou clone
-					obj.traverse( function ( child ) {
-						if (child.isMesh) {
-							var materialRail2Temp = new THREE.ImageUtils.loadTexture("data/textures/Rail/rayCSurface_Color.jpg");
-							child.material.map = materialRail2Temp;
-							geometryRail2 = child.geometry;
-							materialRail2 = child.material;
-						}
-					});
-
-					setupRails("rail2");
-				});
-
-				// Locomotive
-				objLoader.load('data/models/locomotiveCentree.obj', function (obj) {
-					locomotive = obj;
-
-					locomotive.rotateX(90.0 * 2.0 * Math.PI / 360.0);
-					locomotive.scale.set(0.5, 0.5, 0.5);
-					locomotive.translateX(-100.5);
-					locomotive.translateZ(100.0);
-					locomotive.translateY(10.2);
 
 
-					locomotive.traverse(function (child) {
-						if (child.isMesh)
-							child.material = material;//new THREE.MeshStandardMaterial( { color: 0x2194CE } );
-					});
 
-					//if (afficherAxes){
-						var axesLocomotive = new THREE.AxesHelper(200);
-						locomotive.add(axesLocomotive);
-					//}
 
-					scene.add(locomotive);
-				});
+
 			}
+
+
+			function locoCreateLight(){
+				//feu droit
+				var spotLightD = new THREE.SpotLight( 0xffffff/*couleur*/, 5/*intensite*/, 400/*distance*/, 0.3/*angle*/, 0.5/*penombre*/, 2/*decay*/);
+				spotLightD.position.set( -9, 11/*hauteur*/, 42.5/*avant*/ );
+				spotLightD.castShadow = true;
+				spotLightD.target.position.x=-9;
+				spotLightD.target.position.y=locomotive.position.y;
+				spotLightD.target.position.z=locomotive.position.z+500;
+				//création d'une boule pour savoir où est la lumiere
+				var lightSphereD = new THREE.Mesh(new THREE.SphereBufferGeometry(0.5/*diametre*/,10/*nb segment width*/,10/*nb segment height*/),
+						new THREE.MeshStandardMaterial({emissive: 0xffffff,emissiveIntensity: spotLightD.intensity} ) );
+				lightSphereD.castShadow = true;
+				spotLightD.add(lightSphereD);
+
+				//feu gauche
+				var spotLightG = new THREE.SpotLight( 0xffffff/*couleur*/, 5/*intensite*/, 400/*distance*/, 0.3/*angle*/, 0.5/*penombre*/, 2/*decay*/);
+				spotLightG.position.set( 9, 11/*hauteur*/, 42.5/*avant*/ );
+				spotLightG.castShadow = true;
+				spotLightG.target.position.x=9;
+				spotLightG.target.position.y=locomotive.position.y;
+				spotLightG.target.position.z=locomotive.position.z+500;
+				//création d'une boule pour savoir où est la lumiere
+				var lightSphereG = new THREE.Mesh(new THREE.SphereBufferGeometry(0.5/*diametre*/,10/*nb segment width*/,10/*nb segment height*/),
+						new THREE.MeshStandardMaterial({emissive: 0xffffff,emissiveIntensity: spotLightG.intensity} ) );
+				lightSphereG.castShadow = true;
+				spotLightG.add(lightSphereG);
+
+
+
+				locomotive.add( spotLightD.target, spotLightG.target );
+				locomotive.add(spotLightD, spotLightG);
+			}
+
+
 
 			function initRails(rail){
 				rail.rotateX(90.0 * 2.0 * Math.PI / 360.0);
 				rail.scale.set(0.1, 0.1, 0.1);
-				rail.translateX(-100.0);
-				rail.translateZ(100.0);
+				/*rail.translateX(-100.0);
+				rail.translateZ(100.0);*/
 				rail.translateY(10.0);
-				if(rail.geometry === geometryRail1){
+				/*if(rail.geometry === geometryRail1){
 					var cube1 = new THREE.Mesh(new THREE.CubeGeometry(300, 0, 300), materialGravierRail1);
 					cube1.position.y = -2;
 					rail.add( cube1 );
@@ -282,7 +378,27 @@
 					cube2.position.z = -395;
 					cube2.rotation.y=-Math.PI/2+Math.PI;
 					rail.add( cube2 );
+				}*/
+				//on ajoute tous les sous objets de chaque rails
+				if(rail.geometry === geometryRail1[0]){
+					for (let i = 0; i < geometryRail1.length; i++) {
+						rail.add( new THREE.Mesh(geometryRail1[i], materialRail1[i]) );
+					}
 				}
+				if(rail.geometry === geometryRail2[0]){
+					for (let i = 0; i < geometryRail2.length; i++) {
+						rail.add( new THREE.Mesh(geometryRail2[i], materialRail2[i]) );
+					}
+				}
+				// enable shadows
+				rail.receiveShadow = true;
+				rail.castShadow = true;
+				return rail;
+			}
+			function emplacementRails(rail,ry,x,y){
+				rail.rotation.y=ry;
+				rail.position.setX(x);//Math.round((x)*1000)/1000);
+				rail.position.setY(y);//Math.round((y)*1000)/1000);
 				return rail;
 			}
 
@@ -297,10 +413,15 @@
 						//clonage du rail droit
 						//rails1Tab[i] = rail1.clone();
 						//creation d'une new mesh pour chaque rail avec la geometry et le materiau de base
-						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1, materialRail1));
-						//incrémentation de la position en fonction du dernier rail de la ligne précédente (et rotation si besoin)
-						rails1Tab[i].position.setX(-100);
-						rails1Tab[i].position.setY(-70-i*30);
+						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1[0], materialRail1[0]));
+						//incrémentation de la position en fonction du dernier rail de la ligne précédente (et rotation en y si besoin)
+						rails1Tab[i]=emplacementRails(
+								rails1Tab[i],//rail
+								0,//rotation.y
+								-100,//x
+								-70-i*30);//y
+						/*rails1Tab[i].position.setX(-100);
+						rails1Tab[i].position.setY(-70-i*30);*/
 						//affichage
 						scene.add(rails1Tab[i]);
 					}
@@ -311,12 +432,17 @@
 					//clonage du rail tournant
 					//rails2Tab[i2] = rail2.clone();
 					//creation d'une new mesh pour chaque rail avec la geometry et le materiau de base
-					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2, materialRail2));
-					// rotation pour le mettre dans le bon sens
+					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2[0], materialRail2[0]));
+					rails2Tab[i2]=emplacementRails(
+							rails2Tab[i2],//rail
+							-Math.PI/2.0,//rotation.y
+							rails1Tab[end-1].position.x-11.25,//x
+							rails1Tab[end-1].position.y-33);//y
+					/*// rotation pour le mettre dans le bon sens
 					rails2Tab[i2].rotation.y=-Math.PI/2.0;
 					// positionné en fonction du dernier de la ligne droite précédente
 					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x-46.9);
-					rails2Tab[i2].position.setY((rails1Tab[end-1].position.y-30)-15.15);
+					rails2Tab[i2].position.setY((rails1Tab[end-1].position.y-30)-15.15);*/
 					//affichage
 					scene.add(rails2Tab[i2]);
 				}
@@ -326,20 +452,30 @@
 				end += nbrRails[ligneDroite];
 				if (rail==="rail1"){
 					for (i = start; i < end; i++) {
-						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1, materialRail1));
-						rails1Tab[i].rotation.y=Math.PI/2.0+Math.PI;
-						rails1Tab[i].position.setX(rails1Tab[start-1].position.x-(i-start+1)*30-15.05);
-						rails1Tab[i].position.setY(rails1Tab[start-1].position.y-30-14.8);
+						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1[0], materialRail1[0]));
+						rails1Tab[i]=emplacementRails(
+								rails1Tab[i],//rail
+								rails1Tab[start-1].rotation.y-Math.PI/2.0,//rotation.y
+								rails1Tab[start-1].position.x-(i-start+1)*30-15.05,//x
+								rails1Tab[start-1].position.y-30-14.8);//y
+						//rails1Tab[i].rotation.y=-Math.PI/2.0;
+						//rails1Tab[i].position.setX(rails1Tab[start-1].position.x-(i-start+1)*30-15.05);
+						//rails1Tab[i].position.setY(rails1Tab[start-1].position.y-30-14.8);
 						scene.add(rails1Tab[i]);
 					}
 				}
 				// 2eme virage
 				if (rail==="rail2"){
 					i2++;
-					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2, materialRail2));
-					rails2Tab[i2].rotation.y=-Math.PI;
+					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2[0], materialRail2[0]));
+					rails2Tab[i2]=emplacementRails(
+							rails2Tab[i2],//rail
+							-Math.PI,//rotation.y
+							rails1Tab[end-1].position.x-33,//x
+							rails1Tab[end-1].position.y+11.25);//y
+					/*rails2Tab[i2].rotation.y=-Math.PI;
 					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x-45.1);
-					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y+46.6);
+					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y+46.6);*/
 					scene.add(rails2Tab[i2]);
 				}
 
@@ -348,19 +484,29 @@
 				end += nbrRails[ligneDroite];
 				if (rail==="rail1"){
 					for (i = start; i < end; i++) {
-						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1, materialRail1));
-						rails1Tab[i].rotation.y=Math.PI;
+						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1[0], materialRail1[0]));
+						rails1Tab[i]=emplacementRails(
+								rails1Tab[i],//rail
+								rails1Tab[start-1].rotation.y-Math.PI/2.0,//rotation.y
+								rails1Tab[start-1].position.x-30-14.75,//x
+								rails1Tab[start-1].position.y+(i+1-start)*30+14.75);//y
+						/*rails1Tab[i].rotation.y=-Math.PI;
 						rails1Tab[i].position.setX(rails1Tab[start-1].position.x-30-14.75);
-						rails1Tab[i].position.setY(rails1Tab[start-1].position.y+(i+1-start)*30+14.75);
+						rails1Tab[i].position.setY(rails1Tab[start-1].position.y+(i+1-start)*30+14.75);*/
 						scene.add(rails1Tab[i]);
 					}
 				}
 				// 3eme virage
 				if(rail==="rail2"){
 					i2++;
-					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2, materialRail2));
-					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x);
-					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y-1.8);
+					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2[0], materialRail2[0]));
+					rails2Tab[i2]=emplacementRails(
+							rails2Tab[i2],//rail
+							0,//rotation.y
+							rails1Tab[end-1].position.x-11.25,//x
+							rails1Tab[end-1].position.y+34);//y
+					/*rails2Tab[i2].position.setX(rails1Tab[end-1].position.x);
+					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y-1.8);*/
 					scene.add(rails2Tab[i2]);
 				}
 
@@ -369,20 +515,30 @@
 				end += nbrRails[ligneDroite];
 				if (rail==="rail1"){
 					for (i = start; i < end; i++) {
-						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1, materialRail1));
-						rails1Tab[i].rotation.y=Math.PI/2.0+Math.PI;
+						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1[0], materialRail1[0]));
+						rails1Tab[i]=emplacementRails(
+								rails1Tab[i],//rail
+								rails1Tab[start-1].rotation.y+Math.PI/2.0,//rotation.y
+								rails1Tab[start-1].position.x-(i+1-start)*30-15,//x
+								rails1Tab[start-1].position.y+30+15.25);//y
+						/*rails1Tab[i].rotation.y=-Math.PI/2.0;
 						rails1Tab[i].position.setX(rails1Tab[start-1].position.x-(i+1-start)*30-15);
-						rails1Tab[i].position.setY(rails1Tab[start-1].position.y+30+15.25);
+						rails1Tab[i].position.setY(rails1Tab[start-1].position.y+30+15.25);*/
 						scene.add(rails1Tab[i]);
 					}
 				}
 				// 4eme virage
 				if (rail==="rail2"){
 					i2++;
-					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2, materialRail2));
-					rails2Tab[i2].rotation.y=-Math.PI;
+					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2[0], materialRail2[0]));
+					rails2Tab[i2]=emplacementRails(
+							rails2Tab[i2],//rail
+							-Math.PI,//rotation.y
+							rails1Tab[end-1].position.x-33,//x
+							rails1Tab[end-1].position.y+11.25);//y
+					/*rails2Tab[i2].rotation.y=-Math.PI;
 					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x-45.1);
-					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y+46.6);
+					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y+46.6);*/
 					scene.add(rails2Tab[i2]);
 				}
 
@@ -391,20 +547,30 @@
 				end += nbrRails[ligneDroite];
 				if (rail==="rail1"){
 					for (i = start; i < end; i++) {
-						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1, materialRail1));
-						rails1Tab[i].rotation.y=Math.PI;
+						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1[0], materialRail1[0]));
+						rails1Tab[i]=emplacementRails(
+								rails1Tab[i],//rail
+								rails1Tab[start-1].rotation.y-Math.PI/2.0,//rotation.y
+								rails1Tab[start-1].position.x-30-14.75,//x
+								rails1Tab[start-1].position.y+(i+1-start)*30+14.75);//y
+						/*rails1Tab[i].rotation.y=-Math.PI;
 						rails1Tab[i].position.setX(rails1Tab[start-1].position.x-30-14.75);
-						rails1Tab[i].position.setY(rails1Tab[start-1].position.y+(i+1-start)*30+14.75);
+						rails1Tab[i].position.setY(rails1Tab[start-1].position.y+(i+1-start)*30+14.75);*/
 						scene.add(rails1Tab[i]);
 					}
 				}
 				// 5eme virage
 				if (rail==="rail2"){
 					i2++;
-					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2, materialRail2));
-					rails2Tab[i2].rotation.y=Math.PI/2;
+					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2[0], materialRail2[0]));
+					rails2Tab[i2]=emplacementRails(
+							rails2Tab[i2],//rail
+							Math.PI/2,//rotation.y
+							rails1Tab[end-1].position.x+11.25,//x
+							rails1Tab[end-1].position.y+33);//y
+					/*rails2Tab[i2].rotation.y=Math.PI/2;
 					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x+46.45);
-					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y+45);
+					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y+45);*/
 					scene.add(rails2Tab[i2]);
 				}
 				ligneDroite++;
@@ -412,20 +578,30 @@
 				end += nbrRails[ligneDroite];
 				if (rail==="rail1"){
 					for (i = start; i < end; i++) {
-						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1, materialRail1));
-						rails1Tab[i].rotation.y=Math.PI/2.0;
+						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1[0], materialRail1[0]));
+						rails1Tab[i]=emplacementRails(
+								rails1Tab[i],//rail
+								rails1Tab[start-1].rotation.y-Math.PI/2.0,//rotation.y
+								rails1Tab[start-1].position.x+(i-start+1)*30+14.7,//x
+								rails1Tab[start-1].position.y+30+15);//y
+						/*rails1Tab[i].rotation.y=-3*Math.PI/2.0;
 						rails1Tab[i].position.setX(rails1Tab[start-1].position.x+(i-start+1)*30+14.7);
-						rails1Tab[i].position.setY(rails1Tab[start-1].position.y+30+15);
+						rails1Tab[i].position.setY(rails1Tab[start-1].position.y+30+15);*/
 						scene.add(rails1Tab[i]);
 					}
 				}
 				// 6eme virage
 				if (rail==="rail2"){
 					i2++;
-					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2, materialRail2));
-					rails2Tab[i2].rotation.y=-Math.PI/2;
+					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2[0], materialRail2[0]));
+					rails2Tab[i2]=emplacementRails(
+							rails2Tab[i2],//rail
+							-Math.PI/2,//rotation.y
+							rails1Tab[end-1].position.x+34,//x
+							rails1Tab[end-1].position.y+11.25);//y
+					/*rails2Tab[i2].rotation.y=-Math.PI/2;
 					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x-2);
-					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y-0.4);
+					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y-0.4);*/
 					scene.add(rails2Tab[i2]);
 				}
 
@@ -434,20 +610,30 @@
 				end += nbrRails[ligneDroite];
 				if (rail==="rail1"){
 					for (i = start; i < end; i++) {
-						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1, materialRail1));
-						rails1Tab[i].rotation.y=Math.PI;
+						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1[0], materialRail1[0]));
+						rails1Tab[i]=emplacementRails(
+								rails1Tab[i],//rail
+								rails1Tab[start-1].rotation.y+Math.PI/2.0,//rotation.y
+								rails1Tab[start-1].position.x+30+14.9,//x
+								rails1Tab[start-1].position.y+(i+1-start)*30+14.75);//y
+						/*rails1Tab[i].rotation.y=-Math.PI;
 						rails1Tab[i].position.setX(rails1Tab[start-1].position.x+30+14.9);
-						rails1Tab[i].position.setY(rails1Tab[start-1].position.y+(i+1-start)*30+14.75);
+						rails1Tab[i].position.setY(rails1Tab[start-1].position.y+(i+1-start)*30+14.75);*/
 						scene.add(rails1Tab[i]);
 					}
 				}
 				// 7eme virage
 				if (rail==="rail2"){
 					i2++;
-					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2, materialRail2));
-					rails2Tab[i2].rotation.y=Math.PI/2;
+					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2[0], materialRail2[0]));
+					rails2Tab[i2]=emplacementRails(
+							rails2Tab[i2],//rail
+							Math.PI/2,//rotation.y
+							rails1Tab[end-1].position.x+11.25,//x
+							rails1Tab[end-1].position.y+33);//y
+					/*rails2Tab[i2].rotation.y=Math.PI/2;
 					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x+46.45);
-					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y+45);
+					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y+45);*/
 					scene.add(rails2Tab[i2]);
 				}
 				ligneDroite++;
@@ -455,19 +641,29 @@
 				end += nbrRails[ligneDroite];
 				if (rail==="rail1"){
 					for (i = start; i < end; i++) {
-						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1, materialRail1));
-						rails1Tab[i].rotation.y=Math.PI/2.0;
+						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1[0], materialRail1[0]));
+						rails1Tab[i]=emplacementRails(
+								rails1Tab[i],//rail
+								rails1Tab[start-1].rotation.y-Math.PI/2.0,//rotation.y
+								rails1Tab[start-1].position.x+(i-start+1)*30+14.7,//x
+								rails1Tab[start-1].position.y+30+15);//y
+						/*rails1Tab[i].rotation.y=-3*Math.PI/2.0;
 						rails1Tab[i].position.setX(rails1Tab[start-1].position.x+(i-start+1)*30+14.7);
-						rails1Tab[i].position.setY(rails1Tab[start-1].position.y+30+15);
+						rails1Tab[i].position.setY(rails1Tab[start-1].position.y+30+15);*/
 						scene.add(rails1Tab[i]);
 					}
 				}
 				// 8eme virage
 				if (rail==="rail2"){
 					i2++;
-					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2, materialRail2));
-					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x+30+15);
-					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y-30-17);
+					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2[0], materialRail2[0]));
+					rails2Tab[i2]=emplacementRails(
+							rails2Tab[i2],//rail
+							0,//rotation.y
+							rails1Tab[end-1].position.x+33,//x
+							rails1Tab[end-1].position.y-11.25);//y
+					/*rails2Tab[i2].position.setX(rails1Tab[end-1].position.x+30+15);
+					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y-30-17);*/
 					scene.add(rails2Tab[i2]);
 				}
 				ligneDroite++;
@@ -475,19 +671,30 @@
 				end += nbrRails[ligneDroite];
 				if (rail==="rail1"){
 					for (i = start; i < end; i++) {
-						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1, materialRail1));
+						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1[0], materialRail1[0]));
+						rails1Tab[i]=emplacementRails(
+								rails1Tab[i],//rail
+								rails1Tab[start-1].rotation.y-Math.PI/2.0,//rotation.y
+								rails1Tab[start-1].position.x+30+14.9,//x
+								rails1Tab[start-1].position.y-(i+1-start)*30-14.5);//y
+						/*rails1Tab[i].rotation.y=-2*Math.PI;
 						rails1Tab[i].position.setX(rails1Tab[start-1].position.x+30+14.9);
-						rails1Tab[i].position.setY(rails1Tab[start-1].position.y-(i+1-start)*30-14.5);
+						rails1Tab[i].position.setY(rails1Tab[start-1].position.y-(i+1-start)*30-14.5);*/
 						scene.add(rails1Tab[i]);
 					}
 				}
 				// 9eme virage
 				if (rail==="rail2"){
 					i2++;
-					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2, materialRail2));
-					rails2Tab[i2].rotation.y=Math.PI;
+					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2[0], materialRail2[0]));
+					rails2Tab[i2]=emplacementRails(
+							rails2Tab[i2],//rail
+							Math.PI,//rotation.y
+							rails1Tab[end-1].position.x+11.25,//x
+							rails1Tab[end-1].position.y-33.5);//y
+					/*rails2Tab[i2].rotation.y=Math.PI;
 					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x-0.3);
-					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y+2);
+					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y+2);*/
 					scene.add(rails2Tab[i2]);
 				}
 
@@ -496,19 +703,29 @@
 				end += nbrRails[ligneDroite];
 				if (rail==="rail1"){
 					for (i = start; i < end; i++) {
-						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1, materialRail1));
-						rails1Tab[i].rotation.y=Math.PI/2.0;
+						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1[0], materialRail1[0]));
+						rails1Tab[i]=emplacementRails(
+								rails1Tab[i],//rail
+								rails1Tab[start-1].rotation.y+Math.PI/2.0,//rotation.y
+								rails1Tab[start-1].position.x+(i-start+1)*30+14.7,//x
+								rails1Tab[start-1].position.y-30-14.5);//y
+						/*rails1Tab[i].rotation.y=-3*Math.PI/2.0;
 						rails1Tab[i].position.setX(rails1Tab[start-1].position.x+(i-start+1)*30+14.7);
-						rails1Tab[i].position.setY(rails1Tab[start-1].position.y-30-14.5);
+						rails1Tab[i].position.setY(rails1Tab[start-1].position.y-30-14.5);*/
 						scene.add(rails1Tab[i]);
 					}
 				}
 				// 10eme virage
 				if (rail==="rail2"){
 					i2++;
-					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2, materialRail2));
-					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x+30+15);
-					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y-30-17);
+					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2[0], materialRail2[0]));
+					rails2Tab[i2]=emplacementRails(
+							rails2Tab[i2],//rail
+							0,//rotation.y
+							rails1Tab[end-1].position.x+33,//x
+							rails1Tab[end-1].position.y-11.25);//y
+					/*rails2Tab[i2].position.setX(rails1Tab[end-1].position.x+30+15);
+					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y-30-17);*/
 					scene.add(rails2Tab[i2]);
 				}
 
@@ -517,28 +734,44 @@
 				end += nbrRails[ligneDroite];
 				if (rail==="rail1"){
 					for (i = start; i < end; i++) {
-						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1, materialRail1));
+						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1[0], materialRail1[0]));
+						rails1Tab[i]=emplacementRails(
+								rails1Tab[i],//rail
+								rails1Tab[start-1].rotation.y-Math.PI/2.0,//rotation.y
+								rails1Tab[start-1].position.x+30+14.9,//x
+								rails1Tab[start-1].position.y-(i+1-start)*30-15);//y
+						/*rails1Tab[i].rotation.y=-2*Math.PI;
 						rails1Tab[i].position.setX(rails1Tab[start-1].position.x+30+14.9);
-						rails1Tab[i].position.setY(rails1Tab[start-1].position.y-(i+1-start)*30-15);
+						rails1Tab[i].position.setY(rails1Tab[start-1].position.y-(i+1-start)*30-15);*/
 						scene.add(rails1Tab[i]);
 					}
 				}
 				// 11eme virage
 				if (rail==="rail2"){
 					i2++;
-					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2, materialRail2));
-					rails2Tab[i2].rotation.y=-Math.PI/2.0;
+					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2[0], materialRail2[0]));
+					rails2Tab[i2]=emplacementRails(
+							rails2Tab[i2],//rail
+							-Math.PI/2.0,//rotation.y
+							rails1Tab[end-1].position.x-11.25,//x
+							rails1Tab[end-1].position.y-33);//y
+					/*rails2Tab[i2].rotation.y=-Math.PI/2.0;
 					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x-46.9);
-					rails2Tab[i2].position.setY((rails1Tab[end-1].position.y-30)-15.15);
+					rails2Tab[i2].position.setY((rails1Tab[end-1].position.y-30)-15.15);*/
 					scene.add(rails2Tab[i2]);
 				}
 				// 12eme virage
 				if (rail==="rail2"){
 					i2++;
-					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2, materialRail2));
-					rails2Tab[i2].rotation.y=Math.PI/2.0;
+					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2[0], materialRail2[0]));
+					rails2Tab[i2]=emplacementRails(
+							rails2Tab[i2],//rail
+							Math.PI/2.0,//rotation.y
+							rails1Tab[end-1].position.x-38-11.25,//x
+							rails1Tab[end-1].position.y-23-33);//y
+					/*rails2Tab[i2].rotation.y=Math.PI/2.0;
 					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x-13.5);
-					rails2Tab[i2].position.setY((rails1Tab[end-1].position.y-30)-15);
+					rails2Tab[i2].position.setY((rails1Tab[end-1].position.y-30)-15);*/
 					scene.add(rails2Tab[i2]);
 				}
 				ligneDroite++;
@@ -546,19 +779,30 @@
 				end += nbrRails[ligneDroite];
 				if (rail==="rail1"){
 					for (i = start; i < end; i++) {
-						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1, materialRail1));
+						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1[0], materialRail1[0]));
+						rails1Tab[i]=emplacementRails(
+								rails1Tab[i],//rail
+								rails1Tab[start-1].rotation.y,//rotation.y
+								rails1Tab[start-1].position.x-30-30,//x
+								rails1Tab[start-1].position.y-(i+1-start)*30-2*30);//y
+						/*rails1Tab[i].rotation.y=-2*Math.PI;
 						rails1Tab[i].position.setX(rails1Tab[start-1].position.x-30-30);
-						rails1Tab[i].position.setY(rails1Tab[start-1].position.y-(i+1-start)*30-2*30);
+						rails1Tab[i].position.setY(rails1Tab[start-1].position.y-(i+1-start)*30-2*30);*/
 						scene.add(rails1Tab[i]);
 					}
 				}
 				// 13eme virage
 				if (rail==="rail2"){
 					i2++;
-					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2, materialRail2));
-					rails2Tab[i2].rotation.y=-Math.PI/2.0;
+					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2[0], materialRail2[0]));
+					rails2Tab[i2]=emplacementRails(
+							rails2Tab[i2],//rail
+							-Math.PI/2.0,//rotation.y
+							rails1Tab[end-1].position.x-11.25,//x
+							rails1Tab[end-1].position.y-33);//y
+					/*rails2Tab[i2].rotation.y=-Math.PI/2.0;
 					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x-46.9);
-					rails2Tab[i2].position.setY((rails1Tab[end-1].position.y-30)-15.15);
+					rails2Tab[i2].position.setY((rails1Tab[end-1].position.y-30)-15.15);*/
 					scene.add(rails2Tab[i2]);
 				}
 
@@ -567,20 +811,30 @@
 				end += nbrRails[ligneDroite];
 				if (rail==="rail1"){
 					for (i = start; i < end; i++) {
-						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1, materialRail1));
-						rails1Tab[i].rotation.y=Math.PI/2.0+Math.PI;
+						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1[0], materialRail1[0]));
+						rails1Tab[i]=emplacementRails(
+								rails1Tab[i],//rail
+								rails1Tab[start-1].rotation.y-Math.PI/2.0,//rotation.y
+								rails1Tab[start-1].position.x-(i-start+1)*30-15,//x
+								rails1Tab[start-1].position.y-30-14.81);//y
+						/*rails1Tab[i].rotation.y=3*Math.PI/2.0;
 						rails1Tab[i].position.setX(rails1Tab[start-1].position.x-(i-start+1)*30-15.05);
-						rails1Tab[i].position.setY(rails1Tab[start-1].position.y-30-14.8);
+						rails1Tab[i].position.setY(rails1Tab[start-1].position.y-30-14.8);*/
 						scene.add(rails1Tab[i]);
 					}
 				}
 				// 14eme virage (au centre)
 				if (rail==="rail2"){
 					i2++;
-					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2, materialRail2));
-					rails2Tab[i2].rotation.y=Math.PI/2;
+					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2[0], materialRail2[0]));
+					rails2Tab[i2]=emplacementRails(
+							rails2Tab[i2],//rail
+							Math.PI/2.0,//rotation.y
+							rails1Tab[end-1].position.x-33.5,//x
+							rails1Tab[end-1].position.y-11.25);//y
+					/*rails2Tab[i2].rotation.y=Math.PI/2;
 					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x+2);
-					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y);
+					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y);*/
 					scene.add(rails2Tab[i2]);
 				}
 
@@ -598,14 +852,69 @@
 				}
 
 			}
-
-
+			var vitesseTween = 500;
+			var doubleRailOk = false;
+			var numRailDouble = nbrTotalRails-nbrRails[nbrRails.length-1]-nbrRails[nbrRails.length-2];
+			var rotationLoco = 0;
 			function animateLocomotive() {
 				if (locomotive){
 					if(rails1Tab[numRail]) {
 						//console.log("loco : " + locomotive.position.x + "; " + locomotive.position.y);
-						//console.log("rail"+numRail+" : " + rails1Tab[numRail].position.x + "; " + rails1Tab[numRail].position.y);
-						if (locomotive.position.x <= rails1Tab[numRail].position.x+marge &&
+						//console.log("rail_"+numRail+" : " + rails1Tab[numRail].position.x + "; " + rails1Tab[numRail].position.y);
+						if(locomotive.position.x === target1.x &&
+								locomotive.position.y === target1.y){
+						/*if (locomotive.position.x <= target1.x+5 &&
+								locomotive.position.x >= target1.x-5 &&
+								locomotive.position.y <= target1.y+5 &&
+								locomotive.position.y >= target1.y-5) {*/
+							//console.log("position atteinte\n"
+							//		+"loco : " + locomotive.position.x + "; " + locomotive.position.y);
+
+							// go to next rail
+							numRail++;
+							if (numRail>=nbrTotalRails){
+								//retour à zero
+								numRail=0;
+								//on incremente à chaque tour de -2PI car on tourne en rond
+								rotationLoco+=-2*Math.PI;
+							}
+							/*if (numRail<0){
+								//retour à zero
+								numRail=nbrTotalRails-1;
+							}*/
+
+							if(!doubleRailOk && numRail===numRailDouble){
+								target1 = { x : (rails1Tab[numRail].position.x+rails1Tab[numRail-1].position.x)/2, y: (rails1Tab[numRail].position.y+rails1Tab[numRail-1].position.y)/2 , rotation : (rotationLoco-5*Math.PI/2.0)};
+								doubleRailOk=true;
+								// go to next rail
+								numRail--;
+								//console.log("double rail, "+rails1Tab[numRail].rotation.y);
+							}else if(numRail!==numRailDouble || (numRail===numRailDouble && doubleRailOk)){
+
+								//console.log(numRail+", "+(rotationLoco+rails1Tab[numRail].rotation.y));
+								target1 = { x : rails1Tab[numRail].position.x, y: rails1Tab[numRail].position.y , rotation : (rotationLoco+rails1Tab[numRail].rotation.y)};
+
+
+								doubleRailOk=false;
+							}
+							tween.to(target1, vitesseTween);
+							tween.start();
+							//console.log("loco : " + locomotive.position.x + "; " + locomotive.position.y+"\n"
+							//		+"next position : \n"
+							//		+"rail_"+numRail+" : " + rails1Tab[numRail].position.x + "; " + rails1Tab[numRail].position.y);
+
+
+
+
+						}else{
+							TWEEN.update();
+						}
+
+
+
+						//console.log("loco : " + locomotive.position.x + "; " + locomotive.position.y);
+						//console.log("rail_"+numRail+" : " + rails1Tab[numRail].position.x + "; " + rails1Tab[numRail].position.y);
+						/*if (locomotive.position.x <= rails1Tab[numRail].position.x+marge &&
 						locomotive.position.x >= rails1Tab[numRail].position.x-marge &&
 						locomotive.position.y <= rails1Tab[numRail].position.y+marge &&
 						locomotive.position.y >= rails1Tab[numRail].position.y-marge) {
@@ -628,13 +937,35 @@
 								locomotive.position.y -= deplacement;
 							}
 							locomotive.rotation.y=rails1Tab[numRail].rotation.y;
-						}
+						}*/
 					}
 				}
 			}
 
-			function animate() {
+			function tweenInit(){
+				target1 = { x : rails1Tab[numRail].position.x, y: rails1Tab[numRail].position.y , rotation : rails1Tab[numRail].rotation.y};
+				var position = { x : 0, y: 0, rotation: 0 };
+
+				tween = new TWEEN.Tween(position)
+						.to(target1, vitesseTween)
+						.onUpdate(function(){
+							locomotive.position.x = position.x;
+							locomotive.position.y = position.y;
+							locomotive.rotation.y = position.rotation;
+							//console.log("en mouvement : " + position.x + "; " + position.y);
+						})
+						.easing(TWEEN.Easing.Linear.None)
+						.start();
+			}
+
+			function animate(time) {
 				animateLocomotive();
+
+				//changement position soleil
+				if(light){
+					light.position.x=Math.cos(time/1000)*1000;
+					light.position.z=Math.sin(time/1000)*1000;
+				}
 
 				controls.update();
 				render();
