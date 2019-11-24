@@ -55,10 +55,20 @@
 
 
 			// animation train
-			var numRail = 0;
-
+			//deplacement train
 			var tween;
 			var target1;
+			var numRail = 0;
+			//parametre pour le deplacement
+			var vitesseTween = 1000;
+			var doubleRailOk = false;
+			var numRailDouble = nbrTotalRails-nbrRails[nbrRails.length-1]-nbrRails[nbrRails.length-2];
+			var rotationLoco = 0;
+			//lights
+			var allumerLumieres=false;
+			var spotLightLocoD, spotLightLocoG;
+
+
 
 			//premier lancement des functions
 			init();
@@ -289,35 +299,35 @@
 
 			function locoCreateLight(){
 				//feu droit
-				var spotLightD = new THREE.SpotLight( 0xffffff/*couleur*/, 5/*intensite*/, 400/*distance*/, 0.3/*angle*/, 0.5/*penombre*/, 2/*decay*/);
-				spotLightD.position.set( -9, 11/*hauteur*/, 42.5/*avant*/ );
-				spotLightD.castShadow = true;
-				spotLightD.target.position.x=-9;
-				spotLightD.target.position.y=locomotive.position.y;
-				spotLightD.target.position.z=locomotive.position.z+500;
+				spotLightLocoD = new THREE.SpotLight( 0xffffff/*couleur*/, 5/*intensite*/, 400/*distance*/, 0.3/*angle*/, 0.5/*penombre*/, 2/*decay*/);
+				spotLightLocoD.position.set( -9, 11/*hauteur*/, 42.5/*avant*/ );
+				spotLightLocoD.castShadow = true;
+				spotLightLocoD.target.position.x=-9;
+				spotLightLocoD.target.position.y=locomotive.position.y;
+				spotLightLocoD.target.position.z=locomotive.position.z+500;
 				//création d'une boule pour savoir où est la lumiere
 				var lightSphereD = new THREE.Mesh(new THREE.SphereBufferGeometry(0.5/*diametre*/,10/*nb segment width*/,10/*nb segment height*/),
-						new THREE.MeshStandardMaterial({emissive: 0xffffff,emissiveIntensity: spotLightD.intensity} ) );
+						new THREE.MeshStandardMaterial({emissive: 0xffffff,emissiveIntensity: spotLightLocoD.intensity} ) );
 				lightSphereD.castShadow = true;
-				spotLightD.add(lightSphereD);
+				spotLightLocoD.add(lightSphereD);
 
 				//feu gauche
-				var spotLightG = new THREE.SpotLight( 0xffffff/*couleur*/, 5/*intensite*/, 400/*distance*/, 0.3/*angle*/, 0.5/*penombre*/, 2/*decay*/);
-				spotLightG.position.set( 9, 11/*hauteur*/, 42.5/*avant*/ );
-				spotLightG.castShadow = true;
-				spotLightG.target.position.x=9;
-				spotLightG.target.position.y=locomotive.position.y;
-				spotLightG.target.position.z=locomotive.position.z+500;
+				spotLightLocoG = new THREE.SpotLight( 0xffffff/*couleur*/, 5/*intensite*/, 400/*distance*/, 0.3/*angle*/, 0.5/*penombre*/, 2/*decay*/);
+				spotLightLocoG.position.set( 9, 11/*hauteur*/, 42.5/*avant*/ );
+				spotLightLocoG.castShadow = true;
+				spotLightLocoG.target.position.x=9;
+				spotLightLocoG.target.position.y=locomotive.position.y;
+				spotLightLocoG.target.position.z=locomotive.position.z+500;
 				//création d'une boule pour savoir où est la lumiere
 				var lightSphereG = new THREE.Mesh(new THREE.SphereBufferGeometry(0.5/*diametre*/,10/*nb segment width*/,10/*nb segment height*/),
-						new THREE.MeshStandardMaterial({emissive: 0xffffff,emissiveIntensity: spotLightG.intensity} ) );
+						new THREE.MeshStandardMaterial({emissive: 0xffffff,emissiveIntensity: spotLightLocoG.intensity} ) );
 				lightSphereG.castShadow = true;
-				spotLightG.add(lightSphereG);
+				spotLightLocoG.add(lightSphereG);
 
 
 
-				locomotive.add( spotLightD.target, spotLightG.target );
-				locomotive.add(spotLightD, spotLightG);
+				locomotive.add( spotLightLocoD.target, spotLightLocoG.target );
+				locomotive.add(spotLightLocoD, spotLightLocoG);
 			}
 
 
@@ -717,10 +727,7 @@
 				}
 
 			}
-			var vitesseTween = 500;
-			var doubleRailOk = false;
-			var numRailDouble = nbrTotalRails-nbrRails[nbrRails.length-1]-nbrRails[nbrRails.length-2];
-			var rotationLoco = 0;
+
 			function animateLocomotive() {
 				if (locomotive){
 					if(rails1Tab[numRail]) {
@@ -762,6 +769,14 @@
 							TWEEN.update();
 						}
 					}
+					//allumer ou eteindre les lumieres
+					if(allumerLumieres){
+						spotLightLocoD.intensity=5;
+						spotLightLocoG.intensity=5;
+					}else{
+						spotLightLocoD.intensity=0;
+						spotLightLocoG.intensity=0;
+					}
 				}
 			}
 
@@ -781,14 +796,20 @@
 						.start();
 			}
 
-			function animate(time) {
-				animateLocomotive();
-
+			function animateSun(time){
 				//changement position soleil
 				if(light){
-					light.position.x=Math.cos(time/1000)*1000;
-					light.position.z=Math.sin(time/1000)*1000;
+					light.position.x=Math.cos(time/10000)*1000;
+					light.position.z=Math.sin(time/10000)*1000;
 				}
+				//changer l'état des lumieres de la loco si le soleil et en dessous de l'horizon
+				allumerLumieres = light.position.z <= 100;
+			}
+
+			function animate(time) {
+				animateLocomotive();
+				animateSun(time);
+
 
 				controls.update();
 				render();
