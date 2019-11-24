@@ -1,0 +1,46 @@
+# Blender MTL File: 'None'
+# Material Count: 4
+
+newmtl kalas.004
+Ns 50.000007
+Ka 1.000000 1.000000 1.000000
+Kd 1.000000 1.000000 1.000000 #modif pour diffuser au maximum
+Ks 0.100000 0.100000 0.100000 #modif pour qu'il n'y ait pas trop de reflets
+Ke 0.0 0.0 0.0
+Ni 1.000000
+d 1.000000
+illum 3
+map_Kd textures/Rail/kalas.jpg
+
+newmtl ray.004
+Ns 50.000007
+Ka 1.000000 1.000000 1.000000
+Kd 1.000000 1.000000 1.000000
+Ks 0.100000 0.100000 0.100000
+Ke 0.0 0.0 0.0
+Ni 1.000000
+d 1.000000
+illum 3
+map_Kd textures/Rail/ray.JPG
+
+newmtl taslar.004
+Ns 50.000007
+Ka 1.000000 1.000000 1.000000
+Kd 1.000000 1.000000 1.000000
+Ks 0.100000 0.100000 0.100000
+Ke 0.0 0.0 0.0
+Ni 1.000000
+d 1.000000
+illum 3
+map_Kd textures/Rail/taslar.jpg
+
+newmtl vida.004
+Ns 50.000007
+Ka 1.000000 1.000000 1.000000
+Kd 1.000000 1.000000 1.000000
+Ks 0.100000 0.100000 0.100000
+Ke 0.0 0.0 0.0
+Ni 1.000000
+d 1.000000
+illum 3
+map_Kd textures/Rail/ray.JPG
