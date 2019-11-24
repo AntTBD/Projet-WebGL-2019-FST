@@ -53,25 +53,6 @@
 			}
 			console.log("nb total de rail1: "+nbrTotalRails);
 
-			/*
-			//gravier des rails
-			// materiau transparent et opaque pour mettre sur le cube contenant la texture des gravier
-			var autreFaces = new THREE.MeshBasicMaterial({color: 0xffffff, opacity: 0, transparent: true});
-
-			// cubes avec toutes les faces transparentes sauf une pour la texture des graviers
-			var materialGravierRail1 = [
-				autreFaces,autreFaces,
-				new THREE.MeshBasicMaterial({
-					map: THREE.ImageUtils.loadTexture("data/textures/Rail/taslarHSurface_Color2.jpg")
-				}),autreFaces,autreFaces,autreFaces];
-			var materialGravierRail2 = [
-				autreFaces,autreFaces,
-				new THREE.MeshBasicMaterial({
-					map: THREE.ImageUtils.loadTexture("data/textures/Rail/taslarCSurface_Color3.png"),
-					transparent: true
-				}),autreFaces,autreFaces,autreFaces];
-			*/
-
 
 			// animation train
 			var numRail = 0;
@@ -216,6 +197,7 @@
 				objLoader.onProgress = function ( xhr ) {
 					console.log("Objet: " + ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
 				};
+
 				// MTLLoader
 				var mtlLoader = new MTLLoader(manager);
 				mtlLoader.setPath( '/data/' );
@@ -246,10 +228,6 @@
 								.load( 'rail1.obj', function ( obj ) {
 									obj.traverse( function ( child ) {
 										if (child.isMesh) {
-											//var materialRail1Temp = new THREE.ImageUtils.loadTexture("data/textures/Rail/rayHSurface_Color.jpg");
-											//child.material.map = materialRail1Temp;
-											//geometryRail1 = child.geometry;
-											//materialRail1 = child.material;
 
 											//console.log(child);
 											geometryRail1.push(child.geometry);
@@ -266,10 +244,6 @@
 													//afin d'optimiser le nombre d'obj on savee dans 2 var le material et la geometry afin de creer des mesh sans creer d'autres obj ou clone
 													obj.traverse(function (child) {
 														if (child.isMesh) {
-															//var materialRail2Temp = new THREE.ImageUtils.loadTexture("data/textures/Rail/rayCSurface_Color.jpg");
-															//child.material.map = materialRail2Temp;
-															//geometryRail2 = child.geometry;
-															//materialRail2 = child.material;
 
 															//console.log(child);
 															geometryRail2.push(child.geometry);
@@ -296,14 +270,9 @@
 																	locomotive.castShadow = true;
 
 
-																	/*locomotive.traverse(function (child) {
-                                                                        if (child.isMesh)
-                                                                            child.material = material;//new THREE.MeshStandardMaterial( { color: 0x2194CE } );
-                                                                    });*/
-
 																	if (afficherAxes){
-																	var axesLocomotive = new THREE.AxesHelper(200);
-																	locomotive.add(axesLocomotive);
+																		var axesLocomotive = new THREE.AxesHelper(200);
+																		locomotive.add(axesLocomotive);
 																	}
 
 
@@ -364,21 +333,8 @@
 			function initRails(rail){
 				rail.rotateX(90.0 * 2.0 * Math.PI / 360.0);
 				rail.scale.set(0.1, 0.1, 0.1);
-				/*rail.translateX(-100.0);
-				rail.translateZ(100.0);*/
 				rail.translateY(10.0);
-				/*if(rail.geometry === geometryRail1){
-					var cube1 = new THREE.Mesh(new THREE.CubeGeometry(300, 0, 300), materialGravierRail1);
-					cube1.position.y = -2;
-					rail.add( cube1 );
-				} else if(rail.geometry === geometryRail2){
-					var cube2 = new THREE.Mesh(new THREE.CubeGeometry(455, 0, 450), materialGravierRail2);
-					cube2.position.x = -75;
-					cube2.position.y = -2;
-					cube2.position.z = -395;
-					cube2.rotation.y=-Math.PI/2+Math.PI;
-					rail.add( cube2 );
-				}*/
+
 				//on ajoute tous les sous objets de chaque rails
 				if(rail.geometry === geometryRail1[0]){
 					for (let i = 0; i < geometryRail1.length; i++) {
@@ -409,9 +365,6 @@
 				//première ligne droite
 				if (rail==="rail1"){
 					for (i = start; i < end; i++) {
-
-						//clonage du rail droit
-						//rails1Tab[i] = rail1.clone();
 						//creation d'une new mesh pour chaque rail avec la geometry et le materiau de base
 						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1[0], materialRail1[0]));
 						//incrémentation de la position en fonction du dernier rail de la ligne précédente (et rotation en y si besoin)
@@ -420,8 +373,6 @@
 								0,//rotation.y
 								-100,//x
 								-70-i*30);//y
-						/*rails1Tab[i].position.setX(-100);
-						rails1Tab[i].position.setY(-70-i*30);*/
 						//affichage
 						scene.add(rails1Tab[i]);
 					}
@@ -429,20 +380,14 @@
 				// 1er virage
 				if (rail==="rail2"){
 					i2++;
-					//clonage du rail tournant
-					//rails2Tab[i2] = rail2.clone();
 					//creation d'une new mesh pour chaque rail avec la geometry et le materiau de base
 					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2[0], materialRail2[0]));
+					// rotation pour le mettre dans le bon sens + position en fonction du dernier de la ligne droite précédente
 					rails2Tab[i2]=emplacementRails(
 							rails2Tab[i2],//rail
 							-Math.PI/2.0,//rotation.y
 							rails1Tab[end-1].position.x-11.25,//x
 							rails1Tab[end-1].position.y-33);//y
-					/*// rotation pour le mettre dans le bon sens
-					rails2Tab[i2].rotation.y=-Math.PI/2.0;
-					// positionné en fonction du dernier de la ligne droite précédente
-					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x-46.9);
-					rails2Tab[i2].position.setY((rails1Tab[end-1].position.y-30)-15.15);*/
 					//affichage
 					scene.add(rails2Tab[i2]);
 				}
@@ -458,9 +403,6 @@
 								rails1Tab[start-1].rotation.y-Math.PI/2.0,//rotation.y
 								rails1Tab[start-1].position.x-(i-start+1)*30-15.05,//x
 								rails1Tab[start-1].position.y-30-14.8);//y
-						//rails1Tab[i].rotation.y=-Math.PI/2.0;
-						//rails1Tab[i].position.setX(rails1Tab[start-1].position.x-(i-start+1)*30-15.05);
-						//rails1Tab[i].position.setY(rails1Tab[start-1].position.y-30-14.8);
 						scene.add(rails1Tab[i]);
 					}
 				}
@@ -473,9 +415,6 @@
 							-Math.PI,//rotation.y
 							rails1Tab[end-1].position.x-33,//x
 							rails1Tab[end-1].position.y+11.25);//y
-					/*rails2Tab[i2].rotation.y=-Math.PI;
-					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x-45.1);
-					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y+46.6);*/
 					scene.add(rails2Tab[i2]);
 				}
 
@@ -490,9 +429,6 @@
 								rails1Tab[start-1].rotation.y-Math.PI/2.0,//rotation.y
 								rails1Tab[start-1].position.x-30-14.75,//x
 								rails1Tab[start-1].position.y+(i+1-start)*30+14.75);//y
-						/*rails1Tab[i].rotation.y=-Math.PI;
-						rails1Tab[i].position.setX(rails1Tab[start-1].position.x-30-14.75);
-						rails1Tab[i].position.setY(rails1Tab[start-1].position.y+(i+1-start)*30+14.75);*/
 						scene.add(rails1Tab[i]);
 					}
 				}
@@ -505,8 +441,6 @@
 							0,//rotation.y
 							rails1Tab[end-1].position.x-11.25,//x
 							rails1Tab[end-1].position.y+34);//y
-					/*rails2Tab[i2].position.setX(rails1Tab[end-1].position.x);
-					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y-1.8);*/
 					scene.add(rails2Tab[i2]);
 				}
 
@@ -521,9 +455,6 @@
 								rails1Tab[start-1].rotation.y+Math.PI/2.0,//rotation.y
 								rails1Tab[start-1].position.x-(i+1-start)*30-15,//x
 								rails1Tab[start-1].position.y+30+15.25);//y
-						/*rails1Tab[i].rotation.y=-Math.PI/2.0;
-						rails1Tab[i].position.setX(rails1Tab[start-1].position.x-(i+1-start)*30-15);
-						rails1Tab[i].position.setY(rails1Tab[start-1].position.y+30+15.25);*/
 						scene.add(rails1Tab[i]);
 					}
 				}
@@ -536,9 +467,6 @@
 							-Math.PI,//rotation.y
 							rails1Tab[end-1].position.x-33,//x
 							rails1Tab[end-1].position.y+11.25);//y
-					/*rails2Tab[i2].rotation.y=-Math.PI;
-					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x-45.1);
-					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y+46.6);*/
 					scene.add(rails2Tab[i2]);
 				}
 
@@ -553,9 +481,6 @@
 								rails1Tab[start-1].rotation.y-Math.PI/2.0,//rotation.y
 								rails1Tab[start-1].position.x-30-14.75,//x
 								rails1Tab[start-1].position.y+(i+1-start)*30+14.75);//y
-						/*rails1Tab[i].rotation.y=-Math.PI;
-						rails1Tab[i].position.setX(rails1Tab[start-1].position.x-30-14.75);
-						rails1Tab[i].position.setY(rails1Tab[start-1].position.y+(i+1-start)*30+14.75);*/
 						scene.add(rails1Tab[i]);
 					}
 				}
@@ -568,9 +493,6 @@
 							Math.PI/2,//rotation.y
 							rails1Tab[end-1].position.x+11.25,//x
 							rails1Tab[end-1].position.y+33);//y
-					/*rails2Tab[i2].rotation.y=Math.PI/2;
-					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x+46.45);
-					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y+45);*/
 					scene.add(rails2Tab[i2]);
 				}
 				ligneDroite++;
@@ -584,9 +506,6 @@
 								rails1Tab[start-1].rotation.y-Math.PI/2.0,//rotation.y
 								rails1Tab[start-1].position.x+(i-start+1)*30+14.7,//x
 								rails1Tab[start-1].position.y+30+15);//y
-						/*rails1Tab[i].rotation.y=-3*Math.PI/2.0;
-						rails1Tab[i].position.setX(rails1Tab[start-1].position.x+(i-start+1)*30+14.7);
-						rails1Tab[i].position.setY(rails1Tab[start-1].position.y+30+15);*/
 						scene.add(rails1Tab[i]);
 					}
 				}
@@ -599,9 +518,6 @@
 							-Math.PI/2,//rotation.y
 							rails1Tab[end-1].position.x+34,//x
 							rails1Tab[end-1].position.y+11.25);//y
-					/*rails2Tab[i2].rotation.y=-Math.PI/2;
-					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x-2);
-					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y-0.4);*/
 					scene.add(rails2Tab[i2]);
 				}
 
@@ -616,9 +532,6 @@
 								rails1Tab[start-1].rotation.y+Math.PI/2.0,//rotation.y
 								rails1Tab[start-1].position.x+30+14.9,//x
 								rails1Tab[start-1].position.y+(i+1-start)*30+14.75);//y
-						/*rails1Tab[i].rotation.y=-Math.PI;
-						rails1Tab[i].position.setX(rails1Tab[start-1].position.x+30+14.9);
-						rails1Tab[i].position.setY(rails1Tab[start-1].position.y+(i+1-start)*30+14.75);*/
 						scene.add(rails1Tab[i]);
 					}
 				}
@@ -631,9 +544,6 @@
 							Math.PI/2,//rotation.y
 							rails1Tab[end-1].position.x+11.25,//x
 							rails1Tab[end-1].position.y+33);//y
-					/*rails2Tab[i2].rotation.y=Math.PI/2;
-					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x+46.45);
-					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y+45);*/
 					scene.add(rails2Tab[i2]);
 				}
 				ligneDroite++;
@@ -647,9 +557,6 @@
 								rails1Tab[start-1].rotation.y-Math.PI/2.0,//rotation.y
 								rails1Tab[start-1].position.x+(i-start+1)*30+14.7,//x
 								rails1Tab[start-1].position.y+30+15);//y
-						/*rails1Tab[i].rotation.y=-3*Math.PI/2.0;
-						rails1Tab[i].position.setX(rails1Tab[start-1].position.x+(i-start+1)*30+14.7);
-						rails1Tab[i].position.setY(rails1Tab[start-1].position.y+30+15);*/
 						scene.add(rails1Tab[i]);
 					}
 				}
@@ -662,8 +569,6 @@
 							0,//rotation.y
 							rails1Tab[end-1].position.x+33,//x
 							rails1Tab[end-1].position.y-11.25);//y
-					/*rails2Tab[i2].position.setX(rails1Tab[end-1].position.x+30+15);
-					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y-30-17);*/
 					scene.add(rails2Tab[i2]);
 				}
 				ligneDroite++;
@@ -677,9 +582,6 @@
 								rails1Tab[start-1].rotation.y-Math.PI/2.0,//rotation.y
 								rails1Tab[start-1].position.x+30+14.9,//x
 								rails1Tab[start-1].position.y-(i+1-start)*30-14.5);//y
-						/*rails1Tab[i].rotation.y=-2*Math.PI;
-						rails1Tab[i].position.setX(rails1Tab[start-1].position.x+30+14.9);
-						rails1Tab[i].position.setY(rails1Tab[start-1].position.y-(i+1-start)*30-14.5);*/
 						scene.add(rails1Tab[i]);
 					}
 				}
@@ -692,9 +594,6 @@
 							Math.PI,//rotation.y
 							rails1Tab[end-1].position.x+11.25,//x
 							rails1Tab[end-1].position.y-33.5);//y
-					/*rails2Tab[i2].rotation.y=Math.PI;
-					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x-0.3);
-					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y+2);*/
 					scene.add(rails2Tab[i2]);
 				}
 
@@ -709,9 +608,6 @@
 								rails1Tab[start-1].rotation.y+Math.PI/2.0,//rotation.y
 								rails1Tab[start-1].position.x+(i-start+1)*30+14.7,//x
 								rails1Tab[start-1].position.y-30-14.5);//y
-						/*rails1Tab[i].rotation.y=-3*Math.PI/2.0;
-						rails1Tab[i].position.setX(rails1Tab[start-1].position.x+(i-start+1)*30+14.7);
-						rails1Tab[i].position.setY(rails1Tab[start-1].position.y-30-14.5);*/
 						scene.add(rails1Tab[i]);
 					}
 				}
@@ -724,8 +620,6 @@
 							0,//rotation.y
 							rails1Tab[end-1].position.x+33,//x
 							rails1Tab[end-1].position.y-11.25);//y
-					/*rails2Tab[i2].position.setX(rails1Tab[end-1].position.x+30+15);
-					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y-30-17);*/
 					scene.add(rails2Tab[i2]);
 				}
 
@@ -740,9 +634,6 @@
 								rails1Tab[start-1].rotation.y-Math.PI/2.0,//rotation.y
 								rails1Tab[start-1].position.x+30+14.9,//x
 								rails1Tab[start-1].position.y-(i+1-start)*30-15);//y
-						/*rails1Tab[i].rotation.y=-2*Math.PI;
-						rails1Tab[i].position.setX(rails1Tab[start-1].position.x+30+14.9);
-						rails1Tab[i].position.setY(rails1Tab[start-1].position.y-(i+1-start)*30-15);*/
 						scene.add(rails1Tab[i]);
 					}
 				}
@@ -755,9 +646,6 @@
 							-Math.PI/2.0,//rotation.y
 							rails1Tab[end-1].position.x-11.25,//x
 							rails1Tab[end-1].position.y-33);//y
-					/*rails2Tab[i2].rotation.y=-Math.PI/2.0;
-					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x-46.9);
-					rails2Tab[i2].position.setY((rails1Tab[end-1].position.y-30)-15.15);*/
 					scene.add(rails2Tab[i2]);
 				}
 				// 12eme virage
@@ -769,9 +657,6 @@
 							Math.PI/2.0,//rotation.y
 							rails1Tab[end-1].position.x-38-11.25,//x
 							rails1Tab[end-1].position.y-23-33);//y
-					/*rails2Tab[i2].rotation.y=Math.PI/2.0;
-					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x-13.5);
-					rails2Tab[i2].position.setY((rails1Tab[end-1].position.y-30)-15);*/
 					scene.add(rails2Tab[i2]);
 				}
 				ligneDroite++;
@@ -785,9 +670,6 @@
 								rails1Tab[start-1].rotation.y,//rotation.y
 								rails1Tab[start-1].position.x-30-30,//x
 								rails1Tab[start-1].position.y-(i+1-start)*30-2*30);//y
-						/*rails1Tab[i].rotation.y=-2*Math.PI;
-						rails1Tab[i].position.setX(rails1Tab[start-1].position.x-30-30);
-						rails1Tab[i].position.setY(rails1Tab[start-1].position.y-(i+1-start)*30-2*30);*/
 						scene.add(rails1Tab[i]);
 					}
 				}
@@ -800,9 +682,6 @@
 							-Math.PI/2.0,//rotation.y
 							rails1Tab[end-1].position.x-11.25,//x
 							rails1Tab[end-1].position.y-33);//y
-					/*rails2Tab[i2].rotation.y=-Math.PI/2.0;
-					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x-46.9);
-					rails2Tab[i2].position.setY((rails1Tab[end-1].position.y-30)-15.15);*/
 					scene.add(rails2Tab[i2]);
 				}
 
@@ -817,9 +696,6 @@
 								rails1Tab[start-1].rotation.y-Math.PI/2.0,//rotation.y
 								rails1Tab[start-1].position.x-(i-start+1)*30-15,//x
 								rails1Tab[start-1].position.y-30-14.81);//y
-						/*rails1Tab[i].rotation.y=3*Math.PI/2.0;
-						rails1Tab[i].position.setX(rails1Tab[start-1].position.x-(i-start+1)*30-15.05);
-						rails1Tab[i].position.setY(rails1Tab[start-1].position.y-30-14.8);*/
 						scene.add(rails1Tab[i]);
 					}
 				}
@@ -832,9 +708,6 @@
 							Math.PI/2.0,//rotation.y
 							rails1Tab[end-1].position.x-33.5,//x
 							rails1Tab[end-1].position.y-11.25);//y
-					/*rails2Tab[i2].rotation.y=Math.PI/2;
-					rails2Tab[i2].position.setX(rails1Tab[end-1].position.x+2);
-					rails2Tab[i2].position.setY(rails1Tab[end-1].position.y);*/
 					scene.add(rails2Tab[i2]);
 				}
 
@@ -863,12 +736,6 @@
 						//console.log("rail_"+numRail+" : " + rails1Tab[numRail].position.x + "; " + rails1Tab[numRail].position.y);
 						if(locomotive.position.x === target1.x &&
 								locomotive.position.y === target1.y){
-						/*if (locomotive.position.x <= target1.x+5 &&
-								locomotive.position.x >= target1.x-5 &&
-								locomotive.position.y <= target1.y+5 &&
-								locomotive.position.y >= target1.y-5) {*/
-							//console.log("position atteinte\n"
-							//		+"loco : " + locomotive.position.x + "; " + locomotive.position.y);
 
 							// go to next rail
 							numRail++;
@@ -878,10 +745,6 @@
 								//on incremente à chaque tour de -2PI car on tourne en rond
 								rotationLoco+=-2*Math.PI;
 							}
-							/*if (numRail<0){
-								//retour à zero
-								numRail=nbrTotalRails-1;
-							}*/
 
 							if(!doubleRailOk && numRail===numRailDouble){
 								target1 = { x : (rails1Tab[numRail].position.x+rails1Tab[numRail-1].position.x)/2, y: (rails1Tab[numRail].position.y+rails1Tab[numRail-1].position.y)/2 , rotation : (rotationLoco-5*Math.PI/2.0)};
@@ -903,41 +766,9 @@
 							//		+"next position : \n"
 							//		+"rail_"+numRail+" : " + rails1Tab[numRail].position.x + "; " + rails1Tab[numRail].position.y);
 
-
-
-
-						}else{
+						} else {
 							TWEEN.update();
 						}
-
-
-
-						//console.log("loco : " + locomotive.position.x + "; " + locomotive.position.y);
-						//console.log("rail_"+numRail+" : " + rails1Tab[numRail].position.x + "; " + rails1Tab[numRail].position.y);
-						/*if (locomotive.position.x <= rails1Tab[numRail].position.x+marge &&
-						locomotive.position.x >= rails1Tab[numRail].position.x-marge &&
-						locomotive.position.y <= rails1Tab[numRail].position.y+marge &&
-						locomotive.position.y >= rails1Tab[numRail].position.y-marge) {
-							// go to next rail
-							numRail++;
-							if (numRail>=nbrTotalRails){
-								//retour à zero
-								numRail=0;
-							}
-						} else {
-							console.log("en mouvement");
-							if (locomotive.position.x < rails1Tab[numRail].position.x-marge) {
-								locomotive.position.x += deplacement;
-							} else if (locomotive.position.x > rails1Tab[numRail].position.x+marge) {
-								locomotive.position.x -= deplacement;
-							}
-							if (locomotive.position.y < rails1Tab[numRail].position.y-marge) {
-								locomotive.position.y += deplacement;
-							} else if (locomotive.position.y > rails1Tab[numRail].position.y+marge) {
-								locomotive.position.y -= deplacement;
-							}
-							locomotive.rotation.y=rails1Tab[numRail].rotation.y;
-						}*/
 					}
 				}
 			}
