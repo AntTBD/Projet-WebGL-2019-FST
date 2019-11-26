@@ -25,6 +25,8 @@
 			import { OBJLoader } from './threejs/OBJLoader.js';
 			import { TrackballControls } from './threejs/TrackballControls.js';
 
+			var debug=false;
+			var debugSecondaire=false;
 
 			var container;
 
@@ -52,7 +54,9 @@
 			for (let i = 0; i < nbrRails.length; i++) {
 				nbrTotalRails+=nbrRails[i];
 			}
-			console.log("nb total de rail1: "+nbrTotalRails);
+			if(debugSecondaire) {
+				console.log("nb total de rail1: "+nbrTotalRails);
+			}
 
 
 			// animation train
@@ -64,16 +68,16 @@
 			var vitesseTween = 1000;
 			var doubleRailOk = false;
 			var numRailDouble = nbrTotalRails-nbrRails[nbrRails.length-1]-nbrRails[nbrRails.length-2];
-			var rotationLoco = 0;
+			var rotationTour = 0;
 			//lights
 			var allumerLumieres=false;
 			var spotLightLocoD, spotLightLocoG;
 
 
 
-			//premier lancement des functions
+			//premier lancement
 			init();
-			animate(new Date().getTime());
+
 
 			function init() {
 				container = document.createElement('div');
@@ -87,17 +91,24 @@
 					scene.add(axesScene);
 				}
 
+				if(debug) {
+					console.log("Scene ok");
+				}
+
 				createRenderer();
 				createCamera();
 				createControls();
 				createLights();
 				loadModels();
 
-
-
+				animate(new Date().getTime());
 
 				// gestion redimensionnement fenetre
 				window.addEventListener( 'resize', onWindowResize, false );
+
+				if(debug) {
+					console.log("------------- INIT OK -------------");
+				}
 			}
 
 			// creation renderer
@@ -108,6 +119,9 @@
 				renderer.setClearColor(0xAAAAAA, 1);
 				renderer.shadowMap.enabled = true;
 				container.appendChild(renderer.domElement);
+				if(debug) {
+					console.log("Renderer ok");
+				}
 			}
 
 			// camera
@@ -118,11 +132,17 @@
 
 				camera.lookAt(0, 0, 0);
 				scene.add(camera);
+				if(debug) {
+					console.log("Camera ok");
+				}
 			}
 
 			function createControls() {
 				// controle sur la camera, type trackball
 				controls = new TrackballControls(camera, renderer.domElement);
+				if(debug) {
+					console.log("Controls ok");
+				}
 			}
 
 			// lights
@@ -139,6 +159,10 @@
 						new THREE.MeshStandardMaterial({emissive: 0xffffff,emissiveIntensity: light.intensity} ) );
 				lightSphere.castShadow = true;
 				light.add(lightSphere);
+
+				if(debug) {
+					console.log("Soleil ok");
+				}
 			}
 
 
@@ -163,13 +187,13 @@
 
 
 							// bumps (carte de niveau de hauteur à bas relief) perturbation de normal
-							material.bumpMap = bumpTexture;
-							material.bumpScale = -1.0;
+					//		material.bumpMap = bumpTexture;
+					//		material.bumpScale = -1.0;
 
 
 							// glow
-							material.emissive = new THREE.Color(0xffffff);//couleur blanche pour la neige
-							material.emissiveMap = emissiveTexture;
+					//		material.emissive = new THREE.Color(0xffffff);//couleur blanche pour la neige
+					//		material.emissiveMap = emissiveTexture;
 							//material.emissive = new THREE.Color(0x0083ff);//couleur blanche pour la neige
 							//material.emissiveMap = bumpTexture;
 
@@ -180,16 +204,23 @@
 					});
 
 					scene.add(terrain);
+					if(debug) {
+						console.log("terrain ok");
+					}
 
 				}
 
 				// LoadingManager
 				var manager = new THREE.LoadingManager(loadModel);
 				manager.onStart = function ( item, loaded, total ) {
-					console.log( 'Started loading file: ' + item + '.\nLoaded ' + loaded + ' of ' + total + ' files.' );
+					if(debug) {
+						console.log( 'Started loading file: ' + item + '.\nLoaded ' + loaded + ' of ' + total + ' files.' );
+					}
 				};
 				manager.onProgress = function (item, loaded, total) {
-					console.log("Load:", item, "(", loaded, "/", total, ")");
+					if(debug) {
+						console.log("Load:", item, "(", loaded, "/", total, ")");
+					}
 				};
 				manager.onError = function ( error ) {
 					console.log( 'There was an error loading : ' + error );
@@ -204,7 +235,9 @@
 					console.log("Error OBJLoader : " + error);
 				};
 				objLoader.onProgress = function ( xhr ) {
-					console.log("Objet: " + ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
+					if(debug) {
+						console.log("Objet: " + ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
+					}
 				};
 
 				// MTLLoader
@@ -214,7 +247,9 @@
 					console.log("Error MTLLoader : " + error);
 				};
 				mtlLoader.onProgress = function ( xhr ) {
-					console.log("Texture: " + ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
+					if(debug) {
+						console.log("Texture: " + ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
+					}
 				};
 
 				// Terrain
@@ -244,6 +279,9 @@
 										}
 									});
 									setupRails("rail1");
+									if(debug) {
+										console.log("rails droits ok");
+									}
 
 									// Rail tournant
 									mtlLoader.load( 'modifs/rail2.mtl', function ( materials ) {
@@ -260,6 +298,9 @@
 														}
 													});
 													setupRails("rail2");
+													if(debug) {
+														console.log("rails tournants ok");
+													}
 
 													// Locomotive
 													mtlLoader.load( 'modifs/resicza_loco.mtl', function ( materials ) {
@@ -273,6 +314,7 @@
 																	locomotive.translateX(-100);
 																	locomotive.translateZ(100);
 																	locomotive.translateY(10.2);
+
 
 																	// enable shadows
 																	locomotive.receiveShadow = true;
@@ -288,6 +330,9 @@
 																	locoCreateLight();
 																	tweenInit();
 																	scene.add(locomotive);
+																	if(debug) {
+																		console.log("Locomotive ok");
+																	}
 																});
 													});
 												});
@@ -329,6 +374,10 @@
 
 				locomotive.add( spotLightLocoD.target, spotLightLocoG.target );
 				locomotive.add(spotLightLocoD, spotLightLocoG);
+
+				if(debug) {
+					console.log("phare locomotive ok");
+				}
 			}
 
 
@@ -352,12 +401,13 @@
 				// enable shadows
 				rail.receiveShadow = true;
 				rail.castShadow = true;
+
 				return rail;
 			}
 			function emplacementRails(rail,ry,x,y){
 				rail.rotation.y=ry;
-				rail.position.setX(x);//Math.round((x)*1000)/1000);
-				rail.position.setY(y);//Math.round((y)*1000)/1000);
+				rail.position.setX(Math.round((x)*1000)/1000);//arrondi à 0.001 près
+				rail.position.setY(Math.round((y)*1000)/1000);//arrondi à 0.001 près
 				return rail;
 			}
 
@@ -731,77 +781,161 @@
 
 			function animateLocomotive() {
 				if (locomotive){
+					//si le train a été upload
 					if(rails1Tab[numRail]) {
-						//console.log("loco : " + locomotive.position.x + "; " + locomotive.position.y);
-						//console.log("rail_"+numRail+" : " + rails1Tab[numRail].position.x + "; " + rails1Tab[numRail].position.y);
+						//si les rails ont été upload
 						if(locomotive.position.x === target.x[1] &&
 								locomotive.position.y === target.y[1]){
-							tween.stop();
-							console.log("ici");
-							// go to next rail
+							//si on a atteint le target
+
+							// go to next rail:
 							numRail++;
 							if (numRail>=nbrTotalRails){
-								//retour à zero
+								//si on a fait un tour dans le sens horaire
+								//retour au rail zero
 								numRail=0;
-								//on incremente à chaque tour de -2PI car on tourne en rond
-								rotationLoco+=-2*Math.PI;
+								//on incremente de -2PI car on tourne en rond:
+								rotationTour+=-2*Math.PI;
+								if(debug){
+									console.log("un tour de plus");
+								}
+
 							}
-
-							if(!doubleRailOk && numRail===numRailDouble){
-								target = { x : [target.x[1], (rails1Tab[numRail].position.x+rails1Tab[numRail-1].position.x)/2], y: [rails1Tab[numRail].position.y, (rails1Tab[numRail].position.y+rails1Tab[numRail-1].position.y)/2] , rotation : [((rotationLoco-5*Math.PI/2.0)+(rotationLoco-5*Math.PI/2.0))/2/2,((rotationLoco-5*Math.PI/2.0)+(rotationLoco-5*Math.PI/2.0))/2]};
-								doubleRailOk=true;
-								// go to next rail
-								numRail--;
-								//console.log("double rail, "+rails1Tab[numRail].rotation.y);
-							}else if(numRail!==numRailDouble || (numRail===numRailDouble && doubleRailOk)){
-
-								//console.log(numRail+", "+(rotationLoco+rails1Tab[numRail].rotation.y));
-								//target1 = { x : rails1Tab[numRail].position.x, y: rails1Tab[numRail].position.y , rotation : rails1Tab[numRail].rotation.y};
+							if(numRail!==numRailDouble || (numRail===numRailDouble && doubleRailOk)){
+								//si on n'est pas au niveau du double virage
 
 								//calcul de toutes les possibilités des points secondaires pour l'interpolation de bezier
-								var targetDemi={};
-								if(locomotive.rotation.y-(rotationLoco+rails1Tab[numRail].rotation.y)===Math.PI/2){
+								let targetDemi = {};
+								if(locomotive.rotation.y-(rotationTour+rails1Tab[numRail].rotation.y)===Math.PI/2){
+									//si c'est un virage de +PI/2 par rapport à la loco
 									if (locomotive.position.x-rails1Tab[numRail].position.x>0){
-										if (locomotive.position.y-rails1Tab[numRail].position.y>0)
-											targetDemi={ x : target.x[1], y : rails1Tab[numRail].position.y, r: rotationLoco+(rails1Tab[numRail].rotation.y/2.0) };//1
-										else if (locomotive.position.y-rails1Tab[numRail].position.y<0)
-											targetDemi={ x : rails1Tab[numRail].position.x, y : target.y[1], r: rotationLoco+(rails1Tab[numRail].rotation.y/2.0) };//7
+										if (locomotive.position.y-rails1Tab[numRail].position.y>0){
+											targetDemi={ x : target.x[1], y : rails1Tab[numRail].position.y };//1
+											if(debug){
+												console.log("virage de type 1");
+											}
+										}else if (locomotive.position.y-rails1Tab[numRail].position.y<0){
+											targetDemi={ x : rails1Tab[numRail].position.x, y : target.y[1] };//7
+											if(debug){
+												console.log("virage de type 7");
+											}
+										}
 									} else if (locomotive.position.x-rails1Tab[numRail].position.x<0){
-										if (locomotive.position.y-rails1Tab[numRail].position.y>0)
-											targetDemi={ x : rails1Tab[numRail].position.x, y : target.y[1], r: rotationLoco+(rails1Tab[numRail].rotation.y/2.0) };//8
-										else if (locomotive.position.y-rails1Tab[numRail].position.y<0)
-											targetDemi={ x : target.x[1], y : rails1Tab[numRail].position.y, r: rotationLoco+(rails1Tab[numRail].rotation.y/2.0) };//2
+										if (locomotive.position.y-rails1Tab[numRail].position.y>0){
+											targetDemi={ x : rails1Tab[numRail].position.x, y : target.y[1] };//8
+											if(debug){
+												console.log("virage de type 8");
+											}
+										}else if (locomotive.position.y-rails1Tab[numRail].position.y<0){
+											targetDemi={ x : target.x[1], y : rails1Tab[numRail].position.y };//2
+											if(debug){
+												console.log("virage de type 2");
+											}
+										}
 									}
-								} else if(locomotive.rotation.y-(rotationLoco+rails1Tab[numRail].rotation.y)===-Math.PI/2){
+									if(debugSecondaire){
+										console.log("loco : " + locomotive.position.x + "; " + locomotive.position.y+ "; " + (locomotive.rotation.y*(180/Math.PI))+"°\n"
+												+"next position temp : \n"
+												+ targetDemi.x + "; " + targetDemi.y + "\n"
+												+"next position : \n"
+												+"rail_"+numRail+" : " + rails1Tab[numRail].position.x + "; " + rails1Tab[numRail].position.y + "; " + ((rotationTour+rails1Tab[numRail].rotation.y)*(180/Math.PI)) + "°");
+									}
+
+								} else if(locomotive.rotation.y-(rotationTour+rails1Tab[numRail].rotation.y)===-Math.PI/2){
+									//si c'est un virage de -PI/2 par rapport à la loco
 									if (locomotive.position.x-rails1Tab[numRail].position.x>0){
-										if (locomotive.position.y-rails1Tab[numRail].position.y>0)
-											targetDemi={ x : rails1Tab[numRail].position.x, y : target.y[1], r: rotationLoco+(rails1Tab[numRail].rotation.y/2.0) };//6
-										else if (locomotive.position.y-rails1Tab[numRail].position.y<0)
-											targetDemi={ x : target.x[1], y : rails1Tab[numRail].position.y, r: rotationLoco+(rails1Tab[numRail].rotation.y/2.0) };//4
+										if (locomotive.position.y-rails1Tab[numRail].position.y>0){
+											targetDemi={ x : rails1Tab[numRail].position.x, y : target.y[1] };//6
+											if(debug){
+												console.log("virage de type 6");
+											}
+										}else if (locomotive.position.y-rails1Tab[numRail].position.y<0){
+											targetDemi={ x : target.x[1], y : rails1Tab[numRail].position.y };//4
+											if(debug){
+												console.log("virage de type 4");
+											}
+										}
 									} else if (locomotive.position.x-rails1Tab[numRail].position.x<0){
-										if (locomotive.position.y-rails1Tab[numRail].position.y>0)
-											targetDemi={ x : target.x[1], y : rails1Tab[numRail].position.y, r: rotationLoco+(rails1Tab[numRail].rotation.y/2.0) };//3
-										else if (locomotive.position.y-rails1Tab[numRail].position.y<0)
-											targetDemi={ x : rails1Tab[numRail].position.x, y : target.y[1], r: rotationLoco+(rails1Tab[numRail].rotation.y/2.0) };//5
+										if (locomotive.position.y-rails1Tab[numRail].position.y>0){
+											targetDemi={ x : target.x[1], y : rails1Tab[numRail].position.y };//3
+											if(debug){
+												console.log("virage de type 3");
+											}
+										}else if (locomotive.position.y-rails1Tab[numRail].position.y<0){
+											targetDemi={ x : rails1Tab[numRail].position.x, y : target.y[1] };//5
+											if(debug){
+												console.log("virage de type 5");
+											}
+										}
 									}
-								} else if(locomotive.rotation.y-(rotationLoco+rails1Tab[numRail].rotation.y)===0)
-									targetDemi={ x : (rails1Tab[numRail].position.x+target.x[1])/2, y : (rails1Tab[numRail].position.y+target.y[1])/2, r: (rotationLoco+rails1Tab[numRail].rotation.y) };
+									if(debugSecondaire){
+										console.log("loco : " + locomotive.position.x + "; " + locomotive.position.y+ "; " + (locomotive.rotation.y*(180/Math.PI))+"°\n"
+												+"next position temp : \n"
+												+ targetDemi.x + "; " + targetDemi.y + "\n"
+												+"next position : \n"
+												+"rail_"+numRail+" : " + rails1Tab[numRail].position.x + "; " + rails1Tab[numRail].position.y + "; " + ((rotationTour+rails1Tab[numRail].rotation.y)*(180/Math.PI)) + "°");
+									}
 
-								target = { x : [targetDemi.x/*demi*/,rails1Tab[numRail].position.x], y: [targetDemi.y/*demi*/,rails1Tab[numRail].position.y] , rotation : [targetDemi.r/*demi*/,(rotationLoco+rails1Tab[numRail].rotation.y)/*total*/]};
+								} else if(locomotive.rotation.y-(rotationTour+rails1Tab[numRail].rotation.y)===0){
+									//s'il n'y a pas de rotation entre la loco et le prochain rail
+									targetDemi={ x : (rails1Tab[numRail].position.x+target.x[1])/2, y : (rails1Tab[numRail].position.y+target.y[1])/2 };
+									if(debug){
+										console.log("ligne droite");
+									}
+								} else {
+									//si ce n'est pas un angle droit ou une ligne droite alors probleme
+									console.log("/!\\ ERROR : trajectoire non reconnue !!!");
+									if(debugSecondaire){
+										console.log("loco : " + locomotive.position.x + "; " + locomotive.position.y+ "; " + (locomotive.rotation.y*(180/Math.PI))+"°\n"
+												+"target précédent : \n"
+												+ targetDemi.x + "; " + targetDemi.y + "\n"
+												+"next position : \n"
+												+"rail_"+numRail+" : " + rails1Tab[numRail].position.x + "; " + rails1Tab[numRail].position.y + "; " + ((rotationTour+rails1Tab[numRail].rotation.y)*(180/Math.PI)) + "°");
+									}
+								}
 
+								//on defini le prochian target avec la valeur du milieu et la destination finale
+								target = { x : [targetDemi.x/*demi*/,rails1Tab[numRail].position.x], y: [targetDemi.y/*demi*/,rails1Tab[numRail].position.y] , rotation : [(rotationTour+rails1Tab[numRail].rotation.y)/*total*/]};
+								//on a passé le double virage
 								doubleRailOk=false;
+							} else if(!doubleRailOk && numRail===numRailDouble){
+								//si on est au niveau du double virage
+								//on calcul le target du mileu
+								target = { x : [rails1Tab[numRail-1].position.x, (rails1Tab[numRail].position.x+rails1Tab[numRail-1].position.x)/2], y: [(rails1Tab[numRail].position.y+rails1Tab[numRail-1].position.y)/2, (rails1Tab[numRail].position.y+rails1Tab[numRail-1].position.y)/2] , rotation : [rotationTour+rails1Tab[numRail].rotation.y-Math.PI/2/*total*/]};
+								doubleRailOk=true;
+								// pour revenir au bon rail
+								numRail--;
+								if(debug) {
+									console.log("double virage");
+								}
+								if(debugSecondaire){
+									console.log("loco : " + locomotive.position.x + "; " + locomotive.position.y + "; " + (locomotive.rotation.y * (180 / Math.PI)) + "°\n"
+											+ "next position temp : \n"
+											+ target.x[0] + "; " + target.y[0] + "\n"
+											+ "next position : \n"
+											+ "rail_temp : " + target.x[1] + "; " + target.y[1] + "; " + (target.rotation[0] * (180 / Math.PI)) + "°");
+								}
 							}
 							tween.to(target, vitesseTween);
 							tween.start();
-							console.log("loco : " + locomotive.position.x + "; " + locomotive.position.y+"\n"
-									+"next position : \n"
-									+"rail_"+numRail+" : " + rails1Tab[numRail].position.x + "; " + rails1Tab[numRail].position.y);
 
 						} else {
+							//si on a pas atteint le target:
+							if(rotationTour>-2*Math.PI){
+								//si on est au premier tour
+								if(debugSecondaire){
+									//on dessine la trajectoire
+									var point = new THREE.AxesHelper(20);
+									point.position.set( locomotive.position.x, locomotive.position.y, locomotive.position.z+50);
+									point.rotation.z=locomotive.rotation.y;
+									scene.add(point);
+								}
+							}
+							//update le tween
 							TWEEN.update();
 						}
 					}
-					//allumer ou eteindre les lumieres
+					//allumer ou eteindre les lumieres en fonction de la position du soleil
 					if(allumerLumieres){
 						spotLightLocoD.intensity=5;
 						spotLightLocoG.intensity=5;
@@ -814,8 +948,7 @@
 
 			function tweenInit(){
 				var position = { x : 0, y: 0, rotation: 0 };
-				//target1 = { x : rails1Tab[numRail].position.x, y: rails1Tab[numRail].position.y , rotation : rails1Tab[numRail].rotation.y};
-				target = { x : [rails1Tab[numRail].position.x/*demi*/,rails1Tab[numRail].position.x/*fin*/], y: [position.y/*demi*/,rails1Tab[numRail].position.y/*fin*/] , rotation : [((rotationLoco+rails1Tab[numRail].rotation.y)+(rotationLoco+rails1Tab[numRail].rotation.y))/2,(rotationLoco+rails1Tab[numRail].rotation.y)]};
+				target = { x : [rails1Tab[numRail].position.x/*demi*/,rails1Tab[numRail].position.x/*fin*/], y: [position.y/*demi*/,rails1Tab[numRail].position.y/*fin*/] , rotation : [(rotationTour+rails1Tab[numRail].rotation.y)]};
 
 
 				tween = new TWEEN.Tween(position)
@@ -824,19 +957,23 @@
 							locomotive.position.x = object.x;
 							locomotive.position.y = object.y;
 							locomotive.rotation.y = object.rotation;
-							//console.log("en mouvement : x : " + object.x + "; y : " + object.y + "; alpha : " + object.rotation);
-							//console.log(target1);
+							if(debugSecondaire) {
+								console.log("en mouvement : x : " + object.x + "; y : " + object.y + "; alpha : " + object.rotation);
+							}
 						})
 						.easing(TWEEN.Easing.Linear.None)
 						.interpolation(TWEEN.Interpolation.Bezier)
 						.start();
+				if(debug) {
+					console.log("Tween Locomotive ok");
+				}
 			}
 
 			function animateSun(time){
 				//changement position soleil
 				if(light){
-					light.position.x=Math.cos(time/100000)*1000;
-					light.position.z=Math.sin(time/100000)*1000;
+					light.position.x=Math.cos(time/10000)*1000;
+					light.position.z=Math.sin(time/10000)*1000;
 				}
 				//changer l'état des lumieres de la loco si le soleil et en dessous de l'horizon
 				allumerLumieres = light.position.z <= 100;
