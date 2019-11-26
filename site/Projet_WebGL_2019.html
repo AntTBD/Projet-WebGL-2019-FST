@@ -17,7 +17,8 @@
 			var dateModif = new Date(derniereModif);
 			console.log("Dernière modification le "+dateModif);
 		</script>
-		<script src="./threejs/Tween.min.js"></script>
+<!--		<script src="./threejs/Tween.min.js"></script>-->
+		<script src="./tween/tween.umd.js"></script>
 		<script type="module">
 			import * as THREE from './threejs/three.module.js';
 			import { MTLLoader } from './threejs/MTLLoader.js';
@@ -57,7 +58,7 @@
 			// animation train
 			//deplacement train
 			var tween;
-			var target1;
+			var target;
 			var numRail = 0;
 			//parametre pour le deplacement
 			var vitesseTween = 1000;
@@ -162,8 +163,8 @@
 
 
 							// bumps (carte de niveau de hauteur à bas relief) perturbation de normal
-						//	material.bumpMap = bumpTexture;
-						//	material.bumpScale = -1.0;
+							material.bumpMap = bumpTexture;
+							material.bumpScale = -1.0;
 
 
 							// glow
@@ -733,9 +734,10 @@
 					if(rails1Tab[numRail]) {
 						//console.log("loco : " + locomotive.position.x + "; " + locomotive.position.y);
 						//console.log("rail_"+numRail+" : " + rails1Tab[numRail].position.x + "; " + rails1Tab[numRail].position.y);
-						if(locomotive.position.x === target1.x &&
-								locomotive.position.y === target1.y){
-
+						if(locomotive.position.x === target.x[1] &&
+								locomotive.position.y === target.y[1]){
+							tween.stop();
+							console.log("ici");
 							// go to next rail
 							numRail++;
 							if (numRail>=nbrTotalRails){
@@ -746,7 +748,7 @@
 							}
 
 							if(!doubleRailOk && numRail===numRailDouble){
-								target1 = { x : (rails1Tab[numRail].position.x+rails1Tab[numRail-1].position.x)/2, y: (rails1Tab[numRail].position.y+rails1Tab[numRail-1].position.y)/2 , rotation : (rotationLoco-5*Math.PI/2.0)};
+								target = { x : [target.x[1], (rails1Tab[numRail].position.x+rails1Tab[numRail-1].position.x)/2], y: [rails1Tab[numRail].position.y, (rails1Tab[numRail].position.y+rails1Tab[numRail-1].position.y)/2] , rotation : [((rotationLoco-5*Math.PI/2.0)+(rotationLoco-5*Math.PI/2.0))/2/2,((rotationLoco-5*Math.PI/2.0)+(rotationLoco-5*Math.PI/2.0))/2]};
 								doubleRailOk=true;
 								// go to next rail
 								numRail--;
@@ -754,16 +756,46 @@
 							}else if(numRail!==numRailDouble || (numRail===numRailDouble && doubleRailOk)){
 
 								//console.log(numRail+", "+(rotationLoco+rails1Tab[numRail].rotation.y));
-								target1 = { x : rails1Tab[numRail].position.x, y: rails1Tab[numRail].position.y , rotation : (rotationLoco+rails1Tab[numRail].rotation.y)};
+								//target1 = { x : rails1Tab[numRail].position.x, y: rails1Tab[numRail].position.y , rotation : rails1Tab[numRail].rotation.y};
 
+								//calcul de toutes les possibilités des points secondaires pour l'interpolation de bezier
+								var targetDemi={};
+								if(locomotive.rotation.y-(rotationLoco+rails1Tab[numRail].rotation.y)===Math.PI/2){
+									if (locomotive.position.x-rails1Tab[numRail].position.x>0){
+										if (locomotive.position.y-rails1Tab[numRail].position.y>0)
+											targetDemi={ x : target.x[1], y : rails1Tab[numRail].position.y, r: rotationLoco+(rails1Tab[numRail].rotation.y/2.0) };//1
+										else if (locomotive.position.y-rails1Tab[numRail].position.y<0)
+											targetDemi={ x : rails1Tab[numRail].position.x, y : target.y[1], r: rotationLoco+(rails1Tab[numRail].rotation.y/2.0) };//7
+									} else if (locomotive.position.x-rails1Tab[numRail].position.x<0){
+										if (locomotive.position.y-rails1Tab[numRail].position.y>0)
+											targetDemi={ x : rails1Tab[numRail].position.x, y : target.y[1], r: rotationLoco+(rails1Tab[numRail].rotation.y/2.0) };//8
+										else if (locomotive.position.y-rails1Tab[numRail].position.y<0)
+											targetDemi={ x : target.x[1], y : rails1Tab[numRail].position.y, r: rotationLoco+(rails1Tab[numRail].rotation.y/2.0) };//2
+									}
+								} else if(locomotive.rotation.y-(rotationLoco+rails1Tab[numRail].rotation.y)===-Math.PI/2){
+									if (locomotive.position.x-rails1Tab[numRail].position.x>0){
+										if (locomotive.position.y-rails1Tab[numRail].position.y>0)
+											targetDemi={ x : rails1Tab[numRail].position.x, y : target.y[1], r: rotationLoco+(rails1Tab[numRail].rotation.y/2.0) };//6
+										else if (locomotive.position.y-rails1Tab[numRail].position.y<0)
+											targetDemi={ x : target.x[1], y : rails1Tab[numRail].position.y, r: rotationLoco+(rails1Tab[numRail].rotation.y/2.0) };//4
+									} else if (locomotive.position.x-rails1Tab[numRail].position.x<0){
+										if (locomotive.position.y-rails1Tab[numRail].position.y>0)
+											targetDemi={ x : target.x[1], y : rails1Tab[numRail].position.y, r: rotationLoco+(rails1Tab[numRail].rotation.y/2.0) };//3
+										else if (locomotive.position.y-rails1Tab[numRail].position.y<0)
+											targetDemi={ x : rails1Tab[numRail].position.x, y : target.y[1], r: rotationLoco+(rails1Tab[numRail].rotation.y/2.0) };//5
+									}
+								} else if(locomotive.rotation.y-(rotationLoco+rails1Tab[numRail].rotation.y)===0)
+									targetDemi={ x : (rails1Tab[numRail].position.x+target.x[1])/2, y : (rails1Tab[numRail].position.y+target.y[1])/2, r: (rotationLoco+rails1Tab[numRail].rotation.y) };
+
+								target = { x : [targetDemi.x/*demi*/,rails1Tab[numRail].position.x], y: [targetDemi.y/*demi*/,rails1Tab[numRail].position.y] , rotation : [targetDemi.r/*demi*/,(rotationLoco+rails1Tab[numRail].rotation.y)/*total*/]};
 
 								doubleRailOk=false;
 							}
-							tween.to(target1, vitesseTween);
+							tween.to(target, vitesseTween);
 							tween.start();
-							//console.log("loco : " + locomotive.position.x + "; " + locomotive.position.y+"\n"
-							//		+"next position : \n"
-							//		+"rail_"+numRail+" : " + rails1Tab[numRail].position.x + "; " + rails1Tab[numRail].position.y);
+							console.log("loco : " + locomotive.position.x + "; " + locomotive.position.y+"\n"
+									+"next position : \n"
+									+"rail_"+numRail+" : " + rails1Tab[numRail].position.x + "; " + rails1Tab[numRail].position.y);
 
 						} else {
 							TWEEN.update();
@@ -781,26 +813,30 @@
 			}
 
 			function tweenInit(){
-				target1 = { x : rails1Tab[numRail].position.x, y: rails1Tab[numRail].position.y , rotation : rails1Tab[numRail].rotation.y};
 				var position = { x : 0, y: 0, rotation: 0 };
+				//target1 = { x : rails1Tab[numRail].position.x, y: rails1Tab[numRail].position.y , rotation : rails1Tab[numRail].rotation.y};
+				target = { x : [rails1Tab[numRail].position.x/*demi*/,rails1Tab[numRail].position.x/*fin*/], y: [position.y/*demi*/,rails1Tab[numRail].position.y/*fin*/] , rotation : [((rotationLoco+rails1Tab[numRail].rotation.y)+(rotationLoco+rails1Tab[numRail].rotation.y))/2,(rotationLoco+rails1Tab[numRail].rotation.y)]};
+
 
 				tween = new TWEEN.Tween(position)
-						.to(target1, vitesseTween)
-						.onUpdate(function(){
-							locomotive.position.x = position.x;
-							locomotive.position.y = position.y;
-							locomotive.rotation.y = position.rotation;
-							//console.log("en mouvement : " + position.x + "; " + position.y);
+						.to(target, vitesseTween)
+						.onUpdate(function(object){
+							locomotive.position.x = object.x;
+							locomotive.position.y = object.y;
+							locomotive.rotation.y = object.rotation;
+							//console.log("en mouvement : x : " + object.x + "; y : " + object.y + "; alpha : " + object.rotation);
+							//console.log(target1);
 						})
 						.easing(TWEEN.Easing.Linear.None)
+						.interpolation(TWEEN.Interpolation.Bezier)
 						.start();
 			}
 
 			function animateSun(time){
 				//changement position soleil
 				if(light){
-					light.position.x=Math.cos(time/10000)*1000;
-					light.position.z=Math.sin(time/10000)*1000;
+					light.position.x=Math.cos(time/100000)*1000;
+					light.position.z=Math.sin(time/100000)*1000;
 				}
 				//changer l'état des lumieres de la loco si le soleil et en dessous de l'horizon
 				allumerLumieres = light.position.z <= 100;
