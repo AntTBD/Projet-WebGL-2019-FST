@@ -379,7 +379,7 @@
 																	}
 
 																	axesFumee = new THREE.AxesHelper(20);
-																	axesFumee.position.set(0,50,35);//cote, hauteur, avant
+																	axesFumee.position.set(0,50,30);//cote, hauteur, avant
 																	axesFumee.visible=afficherAxes;
 																	locomotive.add(axesFumee);
 
@@ -1059,8 +1059,8 @@
 
 			function animateFumee(){
 				if(locomotive){
-					for (let i = 0; i < 50; i++) {
-						if((timeLiveFumee[i]>=50 || imgFumee[i]===undefined || imgFumee[i].scale.x<1) && delayFumee>=1){
+					for (let i = 0; i < 30; i++) {
+						if((timeLiveFumee[i]>=220 || imgFumee[i]===undefined || imgFumee[i].scale.x<1) && delayFumee>=5){
 							delayFumee=0;
 							if(imgFumee[i]===undefined){
 								imgFumee[i]=new THREE.Mesh(geometryFumee, materialFumee);
@@ -1083,19 +1083,31 @@
 							if(imgFumee[i]!==undefined) {
 								timeLiveFumee[i]++;
 								imgFumee[i].position.z+=15/(timeLiveFumee[i]+1);//la fumée monte
-								if(timeLiveFumee[i]>=40){
-									imgFumee[i].scale.x-=0.75;
-									imgFumee[i].scale.y-=0.75;
-									imgFumee[i].scale.z-=0.75;
+								if(timeLiveFumee[i]>=200){
+									if(imgFumee[i].scale.x>1){
+										imgFumee[i].scale.x-=0.3;
+										imgFumee[i].scale.y-=0.3;
+										imgFumee[i].scale.z-=0.3;
+									}else{
+										timeLiveFumee[i]=220;
+										imgFumee[i].scale.x=0;
+										imgFumee[i].scale.y=0;
+										imgFumee[i].scale.z=0;
+									}
 								}else if(timeLiveFumee[i]<=20){
-									imgFumee[i].scale.x+=0.3;
-									imgFumee[i].scale.y+=0.3;
-									imgFumee[i].scale.z+=0.3;
+									imgFumee[i].scale.x+=0.2;
+									imgFumee[i].scale.y+=0.2;
+									imgFumee[i].scale.z+=0.2;
 								}else{
-									imgFumee[i].scale.x+=0.1;
-									imgFumee[i].scale.y+=0.1;
-									imgFumee[i].scale.z+=0.1;
+									imgFumee[i].scale.x+=0.05;
+									imgFumee[i].scale.y+=0.05;
+									imgFumee[i].scale.z+=0.05;
+									if(i % 4 === 0){
+										timeLiveFumee[i]=200;
+									}
 								}
+
+
 
 								/*imgFumee[i].rotation.x+=0.05;//Math.PI/10;
 								imgFumee[i].rotation.y+=0.05;//Math.PI/8;
@@ -1106,6 +1118,9 @@
 					delayFumee++;
 				}
 			}
+
+			//rendre pour le lundi une archive qui contient le code source + rapport (petit avec image et ce qu'on veut mettre en avant) + slide de mercredi au format PPT
+			//5min par groupes => 7 slides max + commenter ce qui as été dur
 
 			function tweenInit(){
 				var position = { x : rails1Tab[numRail].position.x, y: rails1Tab[numRail].position.y, rotation: rails1Tab[numRail].rotation.y };
