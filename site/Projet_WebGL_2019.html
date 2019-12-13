@@ -401,6 +401,8 @@
 																								    fragmentShader: fragmentShader(),
 																								    vertexShader: vertexShader(),
 																								  });
+																						  //child.shaderMesh = new THREE.Mesh(child.geometry,child.material);
+																							//scene.add(child.shaderMesh);
 																	        }
 																	});
 
@@ -907,10 +909,10 @@
 					if(rails1Tab[numRail]) {
 						locomotive.traverse(function (child) {
 											if (child.isMesh) {
-														//child.material.uniforms.time.value += 1/100;
+														//child.shaderMesh.uniforms.time.value += 1/100;
 										}
 						});
-						locomotive.uniforms.time.value += 1/100;
+					//	locomotive.uniforms.time.value += 1/100;
 						//si les rails ont été upload
 						if(locomotive.position.x === target.x[1] &&
 								locomotive.position.y === target.y[1]){
