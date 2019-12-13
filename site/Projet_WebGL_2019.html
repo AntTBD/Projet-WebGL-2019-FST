@@ -1,26 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
-	<head>
-		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-		<title>Projet WebGL 2019 - Université de Limoges</title>
 
-		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-		<link type="text/css" rel="stylesheet" href="main.css">
-	</head>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<title>Projet WebGL 2019 - Université de Limoges</title>
 
-	<body>
-		<div id="info">
-			Projet WebGL 2019 - Université de Limoges - Jonas FRANCESHI - Martin MORAND - Antoine TABARAUD
-		</div>
-		<script language="javascript">
-			var derniereModif=document.lastModified;
+	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+	<link type="text/css" rel="stylesheet" href="main.css">
+</head>
+
+<body>
+	<div id="info">
+		Projet WebGL 2019 - Université de Limoges - Jonas FRANCESHI - Martin MORAND - Antoine TABARAUD
+	</div>
+	<script language="javascript">
+		var derniereModif=document.lastModified;
 			var dateModif = new Date(derniereModif);
 			console.log("Dernière modification le "+dateModif);
 		</script>
-<!--		<script src="./threejs/Tween.min.js"></script>-->
-		<script src="./tween/tween.umd.js"></script>
-		<script type="module">
-			import * as THREE from './threejs/three.module.js';
+	<!--		<script src="./threejs/Tween.min.js"></script>-->
+	<script src="./tween/tween.umd.js"></script>
+	<script type="module">
+		import * as THREE from './threejs/three.module.js';
 			import { MTLLoader } from './threejs/MTLLoader.js';
 			import { OBJLoader } from './threejs/OBJLoader.js';
 			import { TrackballControls } from './threejs/TrackballControls.js';
@@ -88,6 +89,7 @@
 
 
 
+
 			//premier lancement
 			init();
 
@@ -118,11 +120,57 @@
 
 				// gestion redimensionnement fenetre
 				window.addEventListener( 'resize', onWindowResize, false );
+				addExperimentalCube();
 
 				if(debug) {
 					console.log("------------- INIT OK -------------");
 				}
 			}
+
+			function vertexShader() {
+  return `
+    varying vec3 vUv;
+
+    void main() {
+      vUv = position;
+
+      vec4 modelViewPosition = modelViewMatrix * vec4(position, 1.0);
+      gl_Position = projectionMatrix * modelViewPosition;
+    }
+  `
+}
+
+		function fragmentShader() {
+			return `
+      	uniform vec3 colorA;
+      	uniform vec3 colorB;
+      	varying vec3 vUv;
+
+      	void main() {
+        	gl_FragColor = vec4(mix(colorA, colorB, vUv.z), 1.0);
+      	}
+				`
+			}
+
+			function addExperimentalCube() {
+  let uniforms = {
+        colorB: {type: 'vec3', value: new THREE.Color(0xACB6E5)},
+        colorA: {type: 'vec3', value: new THREE.Color(0x74ebd5)}
+    }
+
+  let geometry = new THREE.BoxGeometry(100, 100, 100)
+  let material =  new THREE.ShaderMaterial({
+    uniforms: uniforms,
+    fragmentShader: fragmentShader(),
+    vertexShader: vertexShader(),
+  })
+
+  let mesh = new THREE.Mesh(geometry, material)
+  mesh.position.z = 500
+  scene.add(mesh)
+  //sceneObjects.push(mesh)
+}
+
 
 			// creation renderer
 			function createRenderer() {
@@ -1148,10 +1196,10 @@
 
 			function animateSun(time){
 				//changement position soleil
-				if(light){
+				/*if(light){
 					light.position.x=Math.cos(time/10000)*1300;
 					light.position.z=Math.sin(time/10000)*1300;
-				}
+				}*/
 				//changer l'état des lumieres de la loco si le soleil et en dessous de l'horizon
 				allumerLumieres = light.position.z <= 100;
 			}
@@ -1183,5 +1231,6 @@
 			}
 
 		</script>
-	</body>
+</body>
+
 </html>
