@@ -120,7 +120,6 @@
 
 				// gestion redimensionnement fenetre
 				window.addEventListener( 'resize', onWindowResize, false );
-				addExperimentalCube();
 
 				if(debug) {
 					console.log("------------- INIT OK -------------");
@@ -144,32 +143,13 @@
 			return `
       	uniform vec3 colorA;
       	uniform vec3 colorB;
-      	varying vec3 vUv;
+      	uniform vec3 time = 0;
 
       	void main() {
-        	gl_FragColor = vec4(mix(colorA, colorB, vUv.z), 1.0);
+        	gl_FragColor = vec4(mix(colorA, colorB, 255*cos(time)), 1.0);
       	}
 				`
 			}
-
-			function addExperimentalCube() {
-  let uniforms = {
-        colorB: {type: 'vec3', value: new THREE.Color(0xAFFFE5)},
-        colorA: {type: 'vec3', value: new THREE.Color(0x7AAAd5)}
-    }
-
-  let geometry = new THREE.BoxGeometry(100, 100, 100)
-  let material =  new THREE.ShaderMaterial({
-    uniforms: uniforms,
-    fragmentShader: fragmentShader(),
-    vertexShader: vertexShader(),
-  })
-
-  let mesh = new THREE.Mesh(geometry, material)
-  mesh.position.z = 500
-  scene.add(mesh)
-  //sceneObjects.push(mesh)
-}
 
 
 			// creation renderer
@@ -409,6 +389,21 @@
 														materials.preload();
 														objLoader.setMaterials(materials)
 																.load('resicza_loco.obj', function (obj) {
+
+																	obj.traverse(function (child) {
+																	          if (child.isMesh) {
+																	                child.material =  new THREE.ShaderMaterial({
+																								    uniforms: {
+																									        colorB: {type: 'vec3', value: new THREE.Color(0xACB6E5)},
+																									        colorA: {type: 'vec3', value: new THREE.Color(0x74ebd5)},
+																													time: { value: 0.0 }
+																									    },
+																								    fragmentShader: fragmentShader(),
+																								    vertexShader: vertexShader(),
+																								  });
+																	        }
+																	});
+
 																	locomotive = obj;
 
 																	locomotive.rotateX(90.0 * 2.0 * Math.PI / 360.0);
@@ -910,6 +905,12 @@
 				if (locomotive){
 					//si le train a été upload
 					if(rails1Tab[numRail]) {
+						locomotive.traverse(function (child) {
+											if (child.isMesh) {
+														//child.material.uniforms.time.value += 1/100;
+										}
+						});
+						locomotive.uniforms.time.value += 1/100;
 						//si les rails ont été upload
 						if(locomotive.position.x === target.x[1] &&
 								locomotive.position.y === target.y[1]){
