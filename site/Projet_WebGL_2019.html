@@ -128,26 +128,23 @@
 
 			function vertexShader() {
   return `
-    varying vec3 vUv;
-
-    void main() {
-      vUv = position;
-
-      vec4 modelViewPosition = modelViewMatrix * vec4(position, 1.0);
-      gl_Position = projectionMatrix * modelViewPosition;
-    }
+	uniform float time;
+			uniform vec2 resolution;
+			void main()	{
+					gl_Position = vec4( position, 1.0 );
+			}
   `
 }
 
 		function fragmentShader() {
 			return `
-      	uniform vec3 colorA;
-      	uniform vec3 colorB;
-      	uniform vec3 time = 0;
-
-      	void main() {
-        	gl_FragColor = vec4(mix(colorA, colorB, 255*cos(time)), 1.0);
-      	}
+			uniform float time;
+        uniform vec2 resolution;
+        void main()	{
+            float x = mod(time + gl_FragCoord.x, 20.) < 10. ? 1. : 0.;
+            float y = mod(time + gl_FragCoord.y, 20.) < 10. ? 1. : 0.;
+            gl_FragColor = vec4(vec3(min(x, y)), 1.);
+					}
 				`
 			}
 
@@ -392,17 +389,15 @@
 
 																	obj.traverse(function (child) {
 																	          if (child.isMesh) {
-																	                child.material =  new THREE.ShaderMaterial({
-																								    uniforms: {
-																									        colorB: {type: 'vec3', value: new THREE.Color(0xACB6E5)},
-																									        colorA: {type: 'vec3', value: new THREE.Color(0x74ebd5)},
-																													time: { value: 0.0 }
-																									    },
+
+																	                child.material = new THREE.ShaderMaterial({
+        																							uniforms: {
+																												time: { type: "f", value: 1.0 },
+        																								resolution: { type: "v2", value: new THREE.Vector2() }
+																											},
 																								    fragmentShader: fragmentShader(),
-																								    vertexShader: vertexShader(),
+																								    vertexShader: vertexShader()
 																								  });
-																						  //child.shaderMesh = new THREE.Mesh(child.geometry,child.material);
-																							//scene.add(child.shaderMesh);
 																	        }
 																	});
 
@@ -907,12 +902,12 @@
 				if (locomotive){
 					//si le train a été upload
 					if(rails1Tab[numRail]) {
-						locomotive.traverse(function (child) {
+					/*	locomotive.traverse(function (child) {
 											if (child.isMesh) {
-														//child.shaderMesh.uniforms.time.value += 1/100;
+														//child.material.uniforms.time.value += 1/100;
 										}
-						});
-					//	locomotive.uniforms.time.value += 1/100;
+						});*/
+						//locomotive.uniforms.time.value += 1/100;
 						//si les rails ont été upload
 						if(locomotive.position.x === target.x[1] &&
 								locomotive.position.y === target.y[1]){
