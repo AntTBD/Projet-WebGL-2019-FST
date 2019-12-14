@@ -1,26 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
-	<head>
-		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-		<title>Projet WebGL 2019 - Université de Limoges</title>
 
-		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-		<link type="text/css" rel="stylesheet" href="main.css">
-	</head>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<title>Projet WebGL 2019 - Université de Limoges</title>
 
-	<body>
-		<div id="info">
-			Projet WebGL 2019 - Université de Limoges - Jonas FRANCESHI - Martin MORAND - Antoine TABARAUD
-		</div>
-		<script language="javascript">
-			var derniereModif=document.lastModified;
+	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+	<link type="text/css" rel="stylesheet" href="main.css">
+</head>
+
+<body>
+	<div id="info">
+		Projet WebGL 2019 - Université de Limoges - Jonas FRANCESHI - Martin MORAND - Antoine TABARAUD
+	</div>
+	<script language="javascript">
+		var derniereModif=document.lastModified;
 			var dateModif = new Date(derniereModif);
 			console.log("Dernière modification le "+dateModif);
 		</script>
-<!--		<script src="./threejs/Tween.min.js"></script>-->
-		<script src="./tween/tween.umd.js"></script>
-		<script type="module">
-			import * as THREE from './threejs/three.module.js';
+	<!--		<script src="./threejs/Tween.min.js"></script>-->
+	<script src="./tween/tween.umd.js"></script>
+	<script type="module">
+		import * as THREE from './threejs/three.module.js';
 			import { MTLLoader } from './threejs/MTLLoader.js';
 			import { OBJLoader } from './threejs/OBJLoader.js';
 			import { TrackballControls } from './threejs/TrackballControls.js';
@@ -38,7 +39,7 @@
 
 			var object;
 
-			var /*rail1, rail2,*/ terrain, locomotive, chemineeLoco, axesFumee, wagon;
+			var /*rail1, rail2,*/ terrain, locomotive, chemineeLoco, axesFumee, wagon, cactus;
 			var terrainDiffuseTexture, terrainBumpTexture, terrainEmissiveTexture, terrainSpecularTexture;
 			var railBumpTexture, railSpecularTexture;
 			var fumeeDiffuseTexture, fumeeBumpTexture, fumeeSpecularTexture, fumeeEmissiveTexture;
@@ -398,6 +399,34 @@
 								});
 					});
 				});
+
+				// Rail droit
+				mtlLoader.load( 'models/Cactus.mtl', function ( materials ) {
+					materials.preload();
+					objLoader.setMaterials(materials)
+							.load('Cactus.obj', function (obj) {
+								cactus = obj;
+
+								cactus.rotateX( 2.0 * Math.PI / 360.0);
+								cactus.scale.set(0.3, 0.3, 0.3);
+								cactus.translateX(-180);
+								cactus.translateZ(0);
+								cactus.translateY(5,2);
+
+								// enable shadows
+								cactus.castShadow = true;
+								cactus.receiveShadow = true;
+
+								if (afficherAxes){
+									var axescactus = new THREE.AxesHelper(200);
+									cactus.add(axescactus);
+								}
+								scene.add(cactus);
+								if(debug) {
+									console.log("cactus ok");
+								}
+							});
+						});
 			}
 
 
@@ -1183,5 +1212,6 @@
 			}
 
 		</script>
-	</body>
+</body>
+
 </html>
