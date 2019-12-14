@@ -141,8 +141,8 @@
 			uniform float time;
         uniform vec2 resolution;
         void main()	{
-            float x = mod(time + gl_FragCoord.x, 20.) < 10. ? 1. : 0.;
-            float y = mod(time + gl_FragCoord.y, 20.) < 10. ? 1. : 0.;
+            float x = mod(time + gl_FragCoord.x, 20.);
+            float y = mod(time + gl_FragCoord.y, 20.);
             gl_FragColor = vec4(vec3(min(x, y)), 1.);
 					}
 				`
@@ -1213,6 +1213,13 @@
 			}
 
 			function render() {
+				var elapsedMilliseconds = Date.now();
+      	var elapsedSeconds = elapsedMilliseconds / 1000.;
+				locomotive.traverse(function (child) {
+									if (child.isMesh) {
+										child.material.uniforms.time.value= 60. * elapsedSeconds;
+      						}
+				});
 				renderer.render(scene, camera);
 			}
 
