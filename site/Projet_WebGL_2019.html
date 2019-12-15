@@ -66,7 +66,7 @@
 
 	//GUI
 	var gui, parameters;
-
+	var stopAnimation = false;
 
 	// animation train
 	//deplacement train
@@ -211,7 +211,7 @@
 	function addGUI()
 	{
 		gui = new dat.GUI({
-			height : 4 * 32 - 1,
+			height : 5 * 32 - 1,
 			width : 400
 		});
 		parameters =
@@ -219,12 +219,14 @@
 					vitesseLoco:1000,
 					cam: 'Plan large',
 					color:"#ffffff",
-					sol:10000
+					sol:10000,
+					stop:false
 				};
 		var vitesse = gui.add( parameters, 'vitesseLoco' ).min(400).max(1700).step(50).name('Vitesse Locomotive').listen();
 		var cam = gui.add(parameters,'cam', ['Plan large', 'Locomotive']).name('Caméra');
 		var soleil = gui.add( parameters, 'sol' ).min(1000).max(20000).step(1000).name('Vitesse de rotation du soleil').listen();
 		var fumeeCol = gui.addColor(parameters, 'color').name('Couleur Fumée').listen();
+		var stop = gui.add(parameters,'stop').name('Stop');
 
 		vitesse.onChange(function(value)
 		{
@@ -253,6 +255,10 @@
 			for(let i = 0; i < imgFumee.length; i++){
 				imgFumee[i].material = materialFumee;
 			}
+		});
+
+		stop.onChange(function (value) {
+			stopAnimation=value;
 		});
 
 		gui.open();
@@ -1231,8 +1237,8 @@
 
 		// Add Sky
 		sky = new Sky();
-		sky.scale.setScalar( 450*4 );
-		sky.position.z = 200;
+		sky.scale.setScalar( 450*5 );
+		sky.position.z = 450;
 		scene.add( sky );
 
 		// Add Sun Helper
@@ -1329,13 +1335,13 @@
 	}
 
 	function animate(time) {
-		animateLocomotive();
-		animateSun(time+3600*3);//+3600*3 pour comencer en pleine journee et non à la fin de la nuit
-		if(addSky) skyAnimate(time+3600*3);//+3600*3 pour comencer en pleine journee et non à la fin de la nuit
+		if(!stopAnimation){
+			animateLocomotive();
+			animateSun(time+3600*3);//+3600*3 pour comencer en pleine journee et non à la fin de la nuit
+			if(addSky) skyAnimate(time+3600*3);//+3600*3 pour comencer en pleine journee et non à la fin de la nuit
 
-		changementTextures();
-
-
+			changementTextures();
+		}
 
 		controls.update();
 		render();
