@@ -1,1187 +1,1378 @@
 <!DOCTYPE html>
 <html lang="en">
-	<head>
-		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-		<title>Projet WebGL 2019 - Université de Limoges</title>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<title>Projet WebGL 2019 - Université de Limoges</title>
 
-		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-		<link type="text/css" rel="stylesheet" href="main.css">
-	</head>
+	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+	<link type="text/css" rel="stylesheet" href="main.css">
+</head>
 
-	<body>
-		<div id="info">
-			Projet WebGL 2019 - Université de Limoges - Jonas FRANCESHI - Martin MORAND - Antoine TABARAUD
-		</div>
-		<script language="javascript">
-			var derniereModif=document.lastModified;
-			var dateModif = new Date(derniereModif);
-			console.log("Dernière modification le "+dateModif);
-		</script>
+<body>
+<div id="info">
+	Projet WebGL 2019 - Université de Limoges - Jonas FRANCESHI - Martin MORAND - Antoine TABARAUD
+</div>
+<script language="javascript">
+	var derniereModif=document.lastModified;
+	var dateModif = new Date(derniereModif);
+	console.log("Dernière modification le "+dateModif);
 <!--		<script src="./threejs/Tween.min.js"></script>-->
-		<script src="./tween/tween.umd.js"></script>
-		<script type="module">
-			import * as THREE from './threejs/three.module.js';
-			import { MTLLoader } from './threejs/MTLLoader.js';
-			import { OBJLoader } from './threejs/OBJLoader.js';
-			import { TrackballControls } from './threejs/TrackballControls.js';
-			import {FaceNormalsHelper, Vector3} from "./threejs/three.module";
+<script src="./tween/tween.umd.js"></script>
+<script src="./threejs/dat.gui.min.js"></script>
+<script type="module">
+	import * as THREE from './threejs/three.module.js';
+	import { MTLLoader } from './threejs/MTLLoader.js';
+	import { OBJLoader } from './threejs/OBJLoader.js';
+	import { TrackballControls } from './threejs/TrackballControls.js';
+	import { Sky } from './threejs/Sky.js';
 
-			var debug=false;
-			var debugSecondaire=false;
+	var debug=false;
+	var debugSecondaire=false;
 
-			var container;
+	var container;
 
-			var camera, scene, renderer, controls, light;
+	var camera, camera1,camera2, scene, renderer, controls, light;
 
-			var windowHalfX = window.innerWidth / 2;
-			var windowHalfY = window.innerHeight / 2;
+	var windowHalfX = window.innerWidth / 2;
+	var windowHalfY = window.innerHeight / 2;
 
-			var object;
+	var object;
 
-			var /*rail1, rail2,*/ terrain, locomotive, chemineeLoco, axesFumee, wagon;
-			var terrainDiffuseTexture, terrainBumpTexture, terrainEmissiveTexture, terrainSpecularTexture;
-			var railBumpTexture, railSpecularTexture;
-			var fumeeDiffuseTexture, fumeeBumpTexture, fumeeSpecularTexture, fumeeEmissiveTexture;
+	var /*rail1, rail2,*/ terrain, locomotive, chemineeLoco, axesFumee, wagon;
+	var terrainDiffuseTexture, terrainBumpTexture, terrainEmissiveTexture, terrainSpecularTexture;
+	var railBumpTexture, railSpecularTexture;
+	var fumeeDiffuseTexture, fumeeBumpTexture, fumeeSpecularTexture, fumeeEmissiveTexture;
 
-			var geometryRail1=[], geometryRail2=[];
-			var materialRail1=[], materialRail2=[];
+	var geometryRail1=[], geometryRail2=[];
+	var materialRail1=[], materialRail2=[];
 
-			//afficher ou non les axes des différents objets
-			var afficherAxes = false;
+	//afficher ou non les axes des différents objets
+	var afficherAxes = false;
 
-			//stockage des rails
-			var rails1Tab = [];
-			var rails2Tab = [];
-			//nombre de rail dans chaque ligne droite
-			var nbrRails = [20, 11, 14, 7, 25, 6, 4, 23, 4, 13, 12, 5, 22];
-			//calcul du nombre total de rails (utilisé dans l'animation locomotive)
-			var nbrTotalRails=0;
-			for (let i = 0; i < nbrRails.length; i++) {
-				nbrTotalRails+=nbrRails[i];
+	//stockage des rails
+	var rails1Tab = [];
+	var rails2Tab = [];
+	//nombre de rail dans chaque ligne droite
+	var nbrRails = [20, 11, 14, 7, 25, 6, 4, 23, 4, 13, 12, 5, 22];
+	//calcul du nombre total de rails (utilisé dans l'animation locomotive)
+	var nbrTotalRails=0;
+	for (let i = 0; i < nbrRails.length; i++) {
+		nbrTotalRails+=nbrRails[i];
+	}
+	if(debugSecondaire) {
+		console.log("nb total de rail1: "+nbrTotalRails);
+	}
+
+	//GUI
+	var gui, parameters;
+
+
+	// animation train
+	//deplacement train
+	var tween;
+	var target;
+	var numRail = 0;
+	//parametre pour le deplacement
+	var vitesseTweenDefault = 1000;
+	var vitesseTween = vitesseTweenDefault;
+	var doubleRailOk = false;
+	var numRailDouble = nbrTotalRails-nbrRails[nbrRails.length-1]-nbrRails[nbrRails.length-2];
+	var rotationTour = 0;
+	var marge = 0.5;
+	//lights
+	var allumerLumieres=false;
+	var spotLightLocoD, spotLightLocoG;
+
+	//fumée de la locomotive
+	var materialFumee, geometryFumee;
+	var nbrFumee = 30;
+	var imgFumee=[];//pour stocker geometry et material
+	var timeLiveFumee=[];//pour reboot la geometry
+	var delayFumee=0;//pour evacuer la fumée toutes les x secondes
+	var hauteurCheminee;
+
+
+	//le ciel
+	var sky, sunSphere;
+	var effectController=[];
+	var addSky = true;
+
+	var rotationSoleil = 10000;
+
+
+	//premier lancement
+	init();
+
+
+	function init() {
+		container = document.createElement('div');
+		document.body.appendChild(container);
+
+		// scene
+		scene = new THREE.Scene();
+
+		if(afficherAxes){
+			var axesScene = new THREE.AxesHelper(100);
+			scene.add(axesScene);
+		}
+
+		if(debug) {
+			console.log("Scene ok");
+		}
+
+		createRenderer();
+		createCamera();
+		createControls();
+		createLights();
+		addGUI();
+		loadModels();
+
+		if(addSky) initSky();
+
+		animate(new Date().getTime());
+
+		// gestion redimensionnement fenetre
+		window.addEventListener( 'resize', onWindowResize, false );
+
+		if(debug) {
+			console.log("------------- INIT OK -------------");
+		}
+	}
+
+	// creation renderer
+	function createRenderer() {
+		renderer = new THREE.WebGLRenderer();
+		renderer.setPixelRatio(window.devicePixelRatio);
+		renderer.setSize(window.innerWidth, window.innerHeight);
+		renderer.setClearColor(0xAAAAAA, 1);
+		renderer.shadowMap.enabled = true;
+		container.appendChild(renderer.domElement);
+		if(debug) {
+			console.log("Renderer ok");
+		}
+	}
+
+	// camera
+	function createCamera() {
+		camera1 = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 4000);
+		camera1.position.z = 700;
+		camera1.position.y = -1100;
+
+		camera1.lookAt(0, 0, 0);
+		scene.add(camera1);
+
+		//camera du train
+		camera2 = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 4000);
+		camera2.lookAt(0,0,1000);
+
+		camera = camera1;
+
+		if(debug) {
+			console.log("Camera ok");
+		}
+	}
+
+	function createControls() {
+		// controle sur la camera, type trackball
+		controls = new TrackballControls(camera1, renderer.domElement);
+		if(debug) {
+			console.log("Controls ok");
+		}
+	}
+
+	// lights
+	function createLights() {
+
+
+		light = new THREE.PointLight(0xFFFFFF, 1.0);
+		light.position.set(0, -500, 500);
+		// enable shadows
+		light.castShadow = true;
+		//light.receiveShadow = true;
+
+		if (afficherAxes) {
+			var helper = new THREE.PointLightHelper(light, 200);
+			scene.add(helper);
+		}
+		scene.add(light);
+
+
+		//création d'une boule pour savoir où est la lumiere
+		var lightSphere = new THREE.Mesh(new THREE.SphereBufferGeometry(50,20,20),
+				new THREE.MeshStandardMaterial({emissive: 0xffffff,emissiveIntensity: light.intensity} ) );
+		light.add(lightSphere);
+
+		if(debug) {
+			console.log("Soleil ok");
+		}
+	}
+
+	function addGUI()
+	{
+		gui = new dat.GUI();
+		parameters =
+				{
+					vitesseLoco:1000,
+					cam: 'Plan large',
+					color:"#ffffff",
+					sol:10000
+				};
+		var vitesse = gui.add( parameters, 'vitesseLoco' ).min(400).max(1700).step(50).name('Vitesse Locomotive').listen();
+		var cam = gui.add(parameters,'cam', ['Plan large', 'Locomotive']).name('Caméra');
+		var soleil = gui.add( parameters, 'sol' ).min(1000).max(20000).step(1000).name('Vitesse de rotation du soleil').listen();
+		var fumeeCol = gui.addColor(parameters, 'color').name('Couleur Fumée').listen();
+
+		vitesse.onChange(function(value)
+		{
+			vitesseTweenDefault = 2000 - value;
+
+		});
+
+		cam.onChange(function(value)
+		{
+			if(value === 'Plan large'){
+				camera = camera1;
 			}
-			if(debugSecondaire) {
-				console.log("nb total de rail1: "+nbrTotalRails);
+			if(value === 'Locomotive'){
+				camera = camera2;
+			}
+		});
+
+		soleil.onChange(function(value)
+		{
+			rotationSoleil = value;
+		});
+
+		fumeeCol.onChange(function(value)
+		{
+			materialFumee.color.setHex(value.replace("#",'0x'));
+			for(let i = 0; i < imgFumee.length; i++){
+				imgFumee[i].material = materialFumee;
+			}
+		});
+
+		gui.open();
+	}
+
+
+	// load all models
+	function loadModels() {
+
+		// http://www.smartjava.org/content/render-3d-star-wars-force-awakens-models-blender-and-threejs/
+		function loadModel() {
+			terrain.traverse(function (child) {
+				if (child.isMesh){
+					// http://www.smartjava.org/content/render-3d-star-wars-force-awakens-models-blender-and-threejs/
+					var material = child.material;
+
+					// basic texture
+					material.map = terrainDiffuseTexture;
+
+
+
+					// bumps (carte de niveau de hauteur à bas relief) perturbation de normal -> relief
+					material.bumpMap = terrainBumpTexture;
+					material.bumpScale = -1.0;
+
+
+					// glow
+					material.emissive = new THREE.Color(0xffffff);//couleur blanche pour la neige
+					material.emissiveMap = terrainEmissiveTexture;
+					//material.emissive = new THREE.Color(0x0083ff);//couleur blanche pour la neige
+					//material.emissiveMap = terrainBumpTexture;
+
+					// specular (brillance)
+					material.specularMap = terrainSpecularTexture;
+
+				}
+			});
+
+			// enable shadows
+			//terrain.castShadow = true;
+			terrain.receiveShadow = true;
+
+
+			scene.add(terrain);
+			if(debug) {
+				console.log("terrain ok");
 			}
 
 
-			// animation train
-			//deplacement train
-			var tween;
-			var target;
-			var numRail = 0;
-			//parametre pour le deplacement
-			var vitesseTweenDefault = 1000;
-			var vitesseTween = vitesseTweenDefault;
-			var doubleRailOk = false;
-			var numRailDouble = nbrTotalRails-nbrRails[nbrRails.length-1]-nbrRails[nbrRails.length-2];
-			var rotationTour = 0;
-			var marge = 0.5;
-			//lights
-			var allumerLumieres=false;
-			var spotLightLocoD, spotLightLocoG;
+		}
 
-			//fumée de la locomotive
-			var materialFumee, geometryFumee;
-			var imgFumee=[];//pour stocker geometry et material
-			var timeLiveFumee=[];//pour reboot la geometry
-			var delayFumee=0;//pour evacuer la fumée toutes les x secondes
-
-
-
-			//premier lancement
-			init();
-
-
-			function init() {
-				container = document.createElement('div');
-				document.body.appendChild(container);
-
-				// scene
-				scene = new THREE.Scene();
-
-				if(afficherAxes){
-					var axesScene = new THREE.AxesHelper(100);
-					scene.add(axesScene);
-				}
-
-				if(debug) {
-					console.log("Scene ok");
-				}
-
-				createRenderer();
-				createCamera();
-				createControls();
-				createLights();
-				loadModels();
-
-				animate(new Date().getTime());
-
-				// gestion redimensionnement fenetre
-				window.addEventListener( 'resize', onWindowResize, false );
-
-				if(debug) {
-					console.log("------------- INIT OK -------------");
-				}
+		// LoadingManager
+		var manager = new THREE.LoadingManager(loadModel);
+		manager.onStart = function ( item, loaded, total ) {
+			if(debug) {
+				console.log( 'Started loading file: ' + item + '.\nLoaded ' + loaded + ' of ' + total + ' files.' );
 			}
-
-			// creation renderer
-			function createRenderer() {
-				renderer = new THREE.WebGLRenderer();
-				renderer.setPixelRatio(window.devicePixelRatio);
-				renderer.setSize(window.innerWidth, window.innerHeight);
-				renderer.setClearColor(0xAAAAAA, 1);
-				renderer.shadowMap.enabled = true;
-				container.appendChild(renderer.domElement);
-				if(debug) {
-					console.log("Renderer ok");
-				}
+		};
+		manager.onProgress = function (item, loaded, total) {
+			if(debug) {
+				console.log("Load:", item, "(", loaded, "/", total, ")");
 			}
+		};
+		manager.onError = function ( error ) {
+			console.log( 'There was an error loading : ' + error );
+		};
 
-			// camera
-			function createCamera() {
-				camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 4000);
-				camera.position.z = 700;
-				camera.position.y = -1100;
-
-				camera.lookAt(0, 0, 0);
-				scene.add(camera);
-				if(debug) {
-					console.log("Camera ok");
-				}
+		//Texture Loader
+		var textLoader = new THREE.TextureLoader(manager)
+				.setPath( '/data/textures/' );
+		textLoader.onError = function ( error ) {
+			console.log("Error TextureLoader : " + error);
+		};
+		textLoader.onProgress = function ( xhr ) {
+			if(debug) {
+				console.log("Texture: " + ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
 			}
+		};
 
-			function createControls() {
-				// controle sur la camera, type trackball
-				controls = new TrackballControls(camera, renderer.domElement);
-				if(debug) {
-					console.log("Controls ok");
-				}
+
+		// OBJLoader
+		var objLoader = new OBJLoader(manager)
+				.setPath( '/data/modifs/' );
+		objLoader.onError = function ( error ) {
+			console.log("Error OBJLoader : " + error);
+		};
+		objLoader.onProgress = function ( xhr ) {
+			if(debug) {
+				console.log("Objet: " + ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
 			}
+		};
 
-			// lights
-			function createLights() {
-				light = new THREE.PointLight(0xFFFFFF, 1.0);
-				light.position.set(0, -500, 500);
-				// enable shadows
-				light.castShadow = true;
-				//light.receiveShadow = true;
+		// MTLLoader
+		var mtlLoader = new MTLLoader(manager);
+		mtlLoader.setPath( '/data/' );
+		mtlLoader.onError = function ( error ) {
+			console.log("Error MTLLoader : " + error);
+		};
+		mtlLoader.onProgress = function ( xhr ) {
+			if(debug) {
+				console.log("Texture: " + ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
+			}
+		};
 
-				var helper = new THREE.PointLightHelper( light, 200);
-				scene.add( helper );
-				scene.add(light);
+
+		//textures :
+		terrainDiffuseTexture = textLoader.load("Terrain/diffuse.png");
+		terrainBumpTexture = textLoader.load("Terrain/flows.png");
+		terrainEmissiveTexture = textLoader.load("Terrain/hight.png");//montagnes (color white)
+		terrainSpecularTexture = textLoader.load("Terrain/flows.png");
+
+		railBumpTexture = textLoader.load("Rail/taslar Relief.png");
+		railSpecularTexture = textLoader.load("Rail/taslar Normal.png");
+
+		fumeeDiffuseTexture = textLoader.load("Fumée/fumee2.png");
+		fumeeBumpTexture = textLoader.load("Fumée/fumee2 Relief.png");
+		fumeeSpecularTexture = textLoader.load("Fumée/fumee2 Normal.png");
+		fumeeEmissiveTexture = textLoader.load("Fumée/fumee2 Relief.png");
 
 
-				//création d'une boule pour savoir où est la lumiere
-				var lightSphere = new THREE.Mesh(new THREE.SphereBufferGeometry(50,20,20),
-						new THREE.MeshStandardMaterial({emissive: 0xffffff,emissiveIntensity: light.intensity} ) );
-				light.add(lightSphere);
+		// Terrain
+		objLoader.load('_TerrainLod4_Bis.obj', function (obj) {
+			terrain = obj;
 
-				if(debug) {
-					console.log("Soleil ok");
-				}
+			if (afficherAxes){
+				var axesTerrain = new THREE.AxesHelper(100);
+				terrain.add(axesTerrain);
 			}
 
 
-			// load all models
-			function loadModels() {
-
-				// http://www.smartjava.org/content/render-3d-star-wars-force-awakens-models-blender-and-threejs/
-
-
-
-				function loadModel() {
-					terrain.traverse(function (child) {
-						if (child.isMesh){
-							// http://www.smartjava.org/content/render-3d-star-wars-force-awakens-models-blender-and-threejs/
-							var material = child.material;
-
-							// basic texture
-							material.map = terrainDiffuseTexture;
-
-
-							// bumps (carte de niveau de hauteur à bas relief) perturbation de normal -> relief
-							material.bumpMap = terrainBumpTexture;
-							material.bumpScale = -1.0;
-
-
-							// glow
-							material.emissive = new THREE.Color(0xffffff);//couleur blanche pour la neige
-							material.emissiveMap = terrainEmissiveTexture;
-							//material.emissive = new THREE.Color(0x0083ff);//couleur blanche pour la neige
-							//material.emissiveMap = terrainBumpTexture;
-
-							// specular (brillance)
-							material.specularMap = terrainSpecularTexture;
-
-						}
-					});
-
-					// enable shadows
-					terrain.castShadow = true;
-					terrain.receiveShadow = true;
-
-
-					scene.add(terrain);
-					if(debug) {
-						console.log("terrain ok");
-					}
-
-
-				}
-
-				// LoadingManager
-				var manager = new THREE.LoadingManager(loadModel);
-				manager.onStart = function ( item, loaded, total ) {
-					if(debug) {
-						console.log( 'Started loading file: ' + item + '.\nLoaded ' + loaded + ' of ' + total + ' files.' );
-					}
-				};
-				manager.onProgress = function (item, loaded, total) {
-					if(debug) {
-						console.log("Load:", item, "(", loaded, "/", total, ")");
-					}
-				};
-				manager.onError = function ( error ) {
-					console.log( 'There was an error loading : ' + error );
-				};
-
-				//Texture Loader
-				var textLoader = new THREE.TextureLoader(manager)
-						.setPath( '/data/textures/' );
-				textLoader.onError = function ( error ) {
-					console.log("Error TextureLoader : " + error);
-				};
-				textLoader.onProgress = function ( xhr ) {
-					if(debug) {
-						console.log("Texture: " + ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
-					}
-				};
-
-
-				// OBJLoader
-				var objLoader = new OBJLoader(manager)
-						.setPath( '/data/modifs/' );
-				objLoader.onError = function ( error ) {
-					console.log("Error OBJLoader : " + error);
-				};
-				objLoader.onProgress = function ( xhr ) {
-					if(debug) {
-						console.log("Objet: " + ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
-					}
-				};
-
-				// MTLLoader
-				var mtlLoader = new MTLLoader(manager);
-				mtlLoader.setPath( '/data/' );
-				mtlLoader.onError = function ( error ) {
-					console.log("Error MTLLoader : " + error);
-				};
-				mtlLoader.onProgress = function ( xhr ) {
-					if(debug) {
-						console.log("Texture: " + ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
-					}
-				};
-
-
-				//textures :
-				terrainDiffuseTexture = textLoader.load("Terrain/diffuse.png");
-				terrainBumpTexture = textLoader.load("Terrain/flows.png");
-				terrainEmissiveTexture = textLoader.load("Terrain/hight.png");//montagnes (color white)
-				terrainSpecularTexture = textLoader.load("Terrain/flows.png");
-
-				railBumpTexture = textLoader.load("Rail/taslar Relief.png");
-				railSpecularTexture = textLoader.load("Rail/taslar Normal.png");
-
-				fumeeDiffuseTexture = textLoader.load("Fumée/fumee2.png");
-				fumeeBumpTexture = textLoader.load("Fumée/fumee2 Relief.png");
-				fumeeSpecularTexture = textLoader.load("Fumée/fumee2 Normal.png");
-				fumeeEmissiveTexture = textLoader.load("Fumée/fumee2 Relief.png");
-
-
-				// Terrain
-				objLoader.load('_TerrainLod4_Bis.obj', function (obj) {
-					terrain = obj;
-
-
-					if (afficherAxes){
-						var axesTerrain = new THREE.AxesHelper(100);
-						terrain.add(axesTerrain);
-					}
-
-
-					// Rail droit
-					mtlLoader.load( 'modifs/rail1.mtl', function ( materials ) {
-						materials.preload();
-						objLoader.setMaterials( materials )
-								.load( 'rail1.obj', function ( obj ) {
-									obj.traverse( function ( child ) {
-										if (child.isMesh) {
-											var mat=child.material;
-											if(child.name==="taslarH.002_taslarH.002_taslar.004"){
-												mat.bumpMap   = railBumpTexture;
-												mat.bumpScale = 5;
-												mat.specularMap   = railSpecularTexture;
-											}
-											//console.log(child);
-											geometryRail1.push(child.geometry);
-											materialRail1.push(mat);
-										}
-									});
-									setupRails("rail1");
-									if(debug) {
-										console.log("rails droits ok");
+			// Rail droit
+			mtlLoader.load( 'modifs/rail1.mtl', function ( materials ) {
+				materials.preload();
+				objLoader.setMaterials( materials )
+						.load( 'rail1.obj', function ( obj ) {
+							obj.traverse( function ( child ) {
+								if (child.isMesh) {
+									var mat=child.material;
+									if(child.name==="taslarH.002_taslarH.002_taslar.004"){
+										mat.bumpMap   = railBumpTexture;
+										mat.bumpScale = 5;
+										mat.specularMap   = railSpecularTexture;
 									}
+									//console.log(child);
+									geometryRail1.push(child.geometry);
+									materialRail1.push(mat);
+								}
+							});
+							setupRails("rail1");
+							if(debug) {
+								console.log("rails droits ok");
+							}
 
-									// Rail tournant
-									mtlLoader.load( 'modifs/rail2.mtl', function ( materials ) {
-										materials.preload();
-										objLoader.setMaterials(materials)
-												.load('rail2.obj', function (obj) {
-													//afin d'optimiser le nombre d'obj on savee dans 2 var le material et la geometry afin de creer des mesh sans creer d'autres obj ou clone
-													obj.traverse(function (child) {
-														if (child.isMesh) {
-															var mat=child.material;
-															if(child.name==="taslarC.002"){
-																mat.bumpMap   = railBumpTexture;
-																mat.bumpScale = 5;
-																mat.specularMap   = railSpecularTexture;
-															}
-															//console.log(child);
-															geometryRail2.push(child.geometry);
-															materialRail2.push(mat);
-														}
-													});
-													setupRails("rail2");
-													if(debug) {
-														console.log("rails tournants ok");
+							// Rail tournant
+							mtlLoader.load( 'modifs/rail2.mtl', function ( materials ) {
+								materials.preload();
+								objLoader.setMaterials(materials)
+										.load('rail2.obj', function (obj) {
+											//afin d'optimiser le nombre d'obj on savee dans 2 var le material et la geometry afin de creer des mesh sans creer d'autres obj ou clone
+											obj.traverse(function (child) {
+												if (child.isMesh) {
+													var mat=child.material;
+													if(child.name==="taslarC.002"){
+														mat.bumpMap   = railBumpTexture;
+														mat.bumpScale = 5;
+														mat.specularMap   = railSpecularTexture;
 													}
+													//console.log(child);
+													geometryRail2.push(child.geometry);
+													materialRail2.push(mat);
+												}
+											});
+											setupRails("rail2");
+											if(debug) {
+												console.log("rails tournants ok");
+											}
 
-													// Locomotive
-													mtlLoader.load( 'modifs/resicza_loco.mtl', function ( materials ) {
-														materials.preload();
-														objLoader.setMaterials(materials)
-																.load('resicza_loco.obj', function (obj) {
-																	locomotive = obj;
+											// Locomotive
+											mtlLoader.load( 'modifs/resicza_loco.mtl', function ( materials ) {
+												materials.preload();
+												objLoader.setMaterials(materials)
+														.load('resicza_loco.obj', function (obj) {
+															locomotive = obj;
 
-																	locomotive.rotateX(90.0 * 2.0 * Math.PI / 360.0);
-																	locomotive.scale.set(1.3, 1.3, 1.3);
-																	locomotive.translateX(-110);
-																	locomotive.translateZ(100);
-																	locomotive.translateY(5.2);
+															locomotive.rotateX(90.0 * 2.0 * Math.PI / 360.0);
+															locomotive.scale.set(1.3, 1.3, 1.3);
+															locomotive.translateX(-110);
+															locomotive.translateZ(100);
+															locomotive.translateY(5.2);
 
-																	// enable shadows
-																	locomotive.castShadow = true;
-																	locomotive.receiveShadow = true;
+															// enable shadows
+															locomotive.castShadow = true;
+															locomotive.receiveShadow = true;
 
-																	if (afficherAxes){
-																		var axesLocomotive = new THREE.AxesHelper(200);
-																		locomotive.add(axesLocomotive);
-																	}
+															if (afficherAxes){
+																var axesLocomotive = new THREE.AxesHelper(200);
+																locomotive.add(axesLocomotive);
+															}
 
-																	axesFumee = new THREE.AxesHelper(20);
-																	axesFumee.position.set(0,50,30);//cote, hauteur, avant
-																	axesFumee.visible=afficherAxes;
-																	locomotive.add(axesFumee);
+															axesFumee = new THREE.AxesHelper(20);
+															axesFumee.position.set(0,50,30);//cote, hauteur, avant
+															axesFumee.visible=afficherAxes;
+															locomotive.add(axesFumee);
 
-																	locoCreateLight();
-																	tweenInit();
-																	initFumee();
-																	scene.add(locomotive);
+															//ajout de la camera du train
+															locomotive.add(camera2);
+															camera2.position.set(0,40,-35);
 
-																	if(debug) {
-																		console.log("Locomotive ok");
-																	}
-																});
-													});
-												});
-									});
-								});
-					});
-				});
+															locoCreateLight();
+															tweenInit();
+															initFumee();
+
+															scene.add(locomotive);
+
+															hauteurCheminee = locomotive.position.z+axesFumee.position.y;
+															if(debugSecondaire) {
+																console.log(hauteurCheminee);
+															}
+
+															if(debug) {
+																console.log("Locomotive ok");
+															}
+
+
+															// Cactus
+															mtlLoader.load( 'modifs/cactus.mtl', function ( materials ) {
+																materials.preload();
+																objLoader.setMaterials(materials)
+																		.load('cactus.obj', function (obj) {
+																			obj.scale.set(0.3, 0.3, 0.3);
+																			obj.translateX(-110);
+																			obj.translateY(0);//hauteur
+																			obj.translateZ(0);
+
+																			scene.add(obj);
+																			if(debug) {
+																				console.log("Cactus ok");
+																			}
+																		});
+															});
+														});
+											});
+										});
+							});
+						});
+			});
+		});
+	}
+
+
+	function locoCreateLight(){
+		//feu droit
+		spotLightLocoD = new THREE.SpotLight( 0xffffff/*couleur*/, 5/*intensite*/, 400/*distance*/, 0.6/*angle*/, 0.5/*penombre*/, 2/*decay*/);
+		spotLightLocoD.position.set( -9/*coté*/, 11/*hauteur*/, 42.5/*avant*/ );
+		spotLightLocoD.castShadow = true;
+		spotLightLocoD.target.position.x=-9;
+		spotLightLocoD.target.position.y=locomotive.position.y;
+		spotLightLocoD.target.position.z=locomotive.position.z+500;
+		//création d'une boule pour savoir où est la lumiere
+		var lightSphereD = new THREE.Mesh(new THREE.SphereBufferGeometry(0.5/*diametre*/,10/*nb segment width*/,10/*nb segment height*/),
+				new THREE.MeshStandardMaterial({emissive: 0xffffff,emissiveIntensity: spotLightLocoD.intensity} ) );
+		lightSphereD.castShadow = true;
+		spotLightLocoD.add(lightSphereD);
+
+		//feu gauche
+		spotLightLocoG = new THREE.SpotLight( 0xffffff/*couleur*/, 5/*intensite*/, 400/*distance*/, 0.6/*angle*/, 0.5/*penombre*/, 2/*decay*/);
+		spotLightLocoG.position.set( 9/*coté*/, 11/*hauteur*/, 42.5/*avant*/ );
+		spotLightLocoG.castShadow = true;
+		spotLightLocoG.target.position.x=9;
+		spotLightLocoG.target.position.y=locomotive.position.y;
+		spotLightLocoG.target.position.z=locomotive.position.z+500;
+		//création d'une boule pour savoir où est la lumiere
+		var lightSphereG = new THREE.Mesh(new THREE.SphereBufferGeometry(0.5/*diametre*/,10/*nb segment width*/,10/*nb segment height*/),
+				new THREE.MeshStandardMaterial({emissive: 0xffffff,emissiveIntensity: spotLightLocoG.intensity} ) );
+		lightSphereG.castShadow = true;
+		spotLightLocoG.add(lightSphereG);
+
+
+
+		locomotive.add( spotLightLocoD.target, spotLightLocoG.target );
+		locomotive.add(spotLightLocoD, spotLightLocoG);
+
+		if(debug) {
+			console.log("phare locomotive ok");
+		}
+	}
+	function initFumee(){
+		//on definit le material de la fumee
+		materialFumee= new THREE.MeshPhongMaterial({
+			map			: fumeeDiffuseTexture,
+			bumpMap		: fumeeBumpTexture,//relief
+			bumpScale	: 5,
+			specularMap	: fumeeSpecularTexture,//brillance
+			emissive	: new THREE.Color(0xffffff),
+			emissiveMap : fumeeEmissiveTexture,
+			side        : THREE.DoubleSide,
+			color		: 0xffffff,
+			opacity     : 0.2,
+			transparent : true,
+			depthWrite  : false
+		});
+
+		geometryFumee = new THREE.Geometry();
+		var geo = new THREE.Mesh(new THREE.PlaneGeometry(10, 10));
+		geometryFumee.mergeMesh(geo);/*new THREE.CubeGeometry(5, 0.01, 5);*/ //y
+		geo.rotateX(Math.PI/2.0);
+		geometryFumee.mergeMesh(geo); //x
+		geo.rotateY(Math.PI/2.0);
+		geometryFumee.mergeMesh(geo); //z
+		geometryFumee.mergeVertices(); // optional
+	}
+
+	function initRails(rail){
+		rail.rotateX(90.0 * 2.0 * Math.PI / 360.0);
+		rail.scale.set(0.1, 0.1, 0.1);
+		rail.translateY(5.0);
+
+		//on ajoute tous les sous objets de chaque rails
+		if(rail.geometry === geometryRail1[0]){
+			for (let i = 0; i < geometryRail1.length; i++) {
+				rail.add( new THREE.Mesh(geometryRail1[i], materialRail1[i]) );
 			}
-
-
-			function locoCreateLight(){
-				//feu droit
-				spotLightLocoD = new THREE.SpotLight( 0xffffff/*couleur*/, 5/*intensite*/, 400/*distance*/, 0.4/*angle*/, 0.5/*penombre*/, 2/*decay*/);
-				spotLightLocoD.position.set( -9/*coté*/, 11/*hauteur*/, 42.5/*avant*/ );
-				spotLightLocoD.castShadow = true;
-				spotLightLocoD.target.position.x=-9;
-				spotLightLocoD.target.position.y=locomotive.position.y;
-				spotLightLocoD.target.position.z=locomotive.position.z+500;
-				//création d'une boule pour savoir où est la lumiere
-				var lightSphereD = new THREE.Mesh(new THREE.SphereBufferGeometry(0.5/*diametre*/,10/*nb segment width*/,10/*nb segment height*/),
-						new THREE.MeshStandardMaterial({emissive: 0xffffff,emissiveIntensity: spotLightLocoD.intensity} ) );
-				lightSphereD.castShadow = true;
-				spotLightLocoD.add(lightSphereD);
-
-				//feu gauche
-				spotLightLocoG = new THREE.SpotLight( 0xffffff/*couleur*/, 5/*intensite*/, 400/*distance*/, 0.4/*angle*/, 0.5/*penombre*/, 2/*decay*/);
-				spotLightLocoG.position.set( 9/*coté*/, 11/*hauteur*/, 42.5/*avant*/ );
-				spotLightLocoG.castShadow = true;
-				spotLightLocoG.target.position.x=9;
-				spotLightLocoG.target.position.y=locomotive.position.y;
-				spotLightLocoG.target.position.z=locomotive.position.z+500;
-				//création d'une boule pour savoir où est la lumiere
-				var lightSphereG = new THREE.Mesh(new THREE.SphereBufferGeometry(0.5/*diametre*/,10/*nb segment width*/,10/*nb segment height*/),
-						new THREE.MeshStandardMaterial({emissive: 0xffffff,emissiveIntensity: spotLightLocoG.intensity} ) );
-				lightSphereG.castShadow = true;
-				spotLightLocoG.add(lightSphereG);
-
-
-
-				locomotive.add( spotLightLocoD.target, spotLightLocoG.target );
-				locomotive.add(spotLightLocoD, spotLightLocoG);
-
-				if(debug) {
-					console.log("phare locomotive ok");
-				}
+		}
+		if(rail.geometry === geometryRail2[0]){
+			for (let i = 0; i < geometryRail2.length; i++) {
+				rail.add( new THREE.Mesh(geometryRail2[i], materialRail2[i]) );
 			}
+		}
+		// enable shadows
+		rail.castShadow = true;
+		rail.receiveShadow = true;
 
-			function initFumee(){
-				//on definit le material de la fumee
-				materialFumee= new THREE.MeshPhongMaterial({
-					map			: fumeeDiffuseTexture,
-					bumpMap		: fumeeBumpTexture,//relief
-					bumpScale	: 5,
-					specularMap	: fumeeSpecularTexture,//brillance
-					emissive	: new THREE.Color(0xffffff),
-					emissiveMap : fumeeEmissiveTexture,
-					side        : THREE.DoubleSide,
-					color		: 0xffffff,
-					opacity     : 0.2,
-					transparent : true,
-					depthWrite  : false
-				});
+		return rail;
+	}
+	function emplacementRails(rail,ry,x,y){
+		rail.rotation.y=ry;
+		rail.position.setX(Math.round((x)*1000)/1000);//arrondi à 0.001 près
+		rail.position.setY(Math.round((y)*1000)/1000);//arrondi à 0.001 près
+		return rail;
+	}
 
-				geometryFumee = new THREE.Geometry();
-				geometryFumee.mergeMesh(new THREE.Mesh(new THREE.CubeGeometry(10, 0.01, 10)));/*new THREE.CubeGeometry(5, 0.01, 5);*/
-				geometryFumee.mergeMesh(new THREE.Mesh(new THREE.CubeGeometry(0.01, 10, 10)));
-				geometryFumee.mergeMesh(new THREE.Mesh(new THREE.CubeGeometry(10, 10, 0.01)));
-				geometryFumee.mergeVertices(); // optional
+	function setupRails(rail) {
+		var i, i2=0, ligneDroite=0;
+		var start = 0;
+		var end = nbrRails[ligneDroite];
+		//première ligne droite
+		if (rail==="rail1"){
+			for (i = start; i < end; i++) {
+				//creation d'une new mesh pour chaque rail avec la geometry et le materiau de base
+				rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1[0], materialRail1[0]));
+				//incrémentation de la position en fonction du dernier rail de la ligne précédente (et rotation en y si besoin)
+				rails1Tab[i]=emplacementRails(
+						rails1Tab[i],//rail
+						0,//rotation.y
+						-110,//x
+						-70-i*30);//y
+				//affichage
+				scene.add(rails1Tab[i]);
 			}
+		}
+		// 1er virage
+		if (rail==="rail2"){
+			i2++;
+			//creation d'une new mesh pour chaque rail avec la geometry et le materiau de base
+			rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2[0], materialRail2[0]));
+			// rotation pour le mettre dans le bon sens + position en fonction du dernier de la ligne droite précédente
+			rails2Tab[i2]=emplacementRails(
+					rails2Tab[i2],//rail
+					-Math.PI/2.0,//rotation.y
+					rails1Tab[end-1].position.x-11.25,//x
+					rails1Tab[end-1].position.y-33);//y
+			//affichage
+			scene.add(rails2Tab[i2]);
+		}
 
-			function initRails(rail){
-				rail.rotateX(90.0 * 2.0 * Math.PI / 360.0);
-				rail.scale.set(0.1, 0.1, 0.1);
-				rail.translateY(5.0);
-
-				//on ajoute tous les sous objets de chaque rails
-				if(rail.geometry === geometryRail1[0]){
-					for (let i = 0; i < geometryRail1.length; i++) {
-						rail.add( new THREE.Mesh(geometryRail1[i], materialRail1[i]) );
-					}
-				}
-				if(rail.geometry === geometryRail2[0]){
-					for (let i = 0; i < geometryRail2.length; i++) {
-						rail.add( new THREE.Mesh(geometryRail2[i], materialRail2[i]) );
-					}
-				}
-				// enable shadows
-				rail.castShadow = true;
-				rail.receiveShadow = true;
-
-				return rail;
+		ligneDroite++;
+		start = end;
+		end += nbrRails[ligneDroite];
+		if (rail==="rail1"){
+			for (i = start; i < end; i++) {
+				rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1[0], materialRail1[0]));
+				rails1Tab[i]=emplacementRails(
+						rails1Tab[i],//rail
+						rails1Tab[start-1].rotation.y-Math.PI/2.0,//rotation.y
+						rails1Tab[start-1].position.x-(i-start+1)*30-14.5,//x
+						rails1Tab[start-1].position.y-30-14.8);//y
+				scene.add(rails1Tab[i]);
 			}
-			function emplacementRails(rail,ry,x,y){
-				rail.rotation.y=ry;
-				rail.position.setX(Math.round((x)*1000)/1000);//arrondi à 0.001 près
-				rail.position.setY(Math.round((y)*1000)/1000);//arrondi à 0.001 près
-				return rail;
+		}
+		// 2eme virage
+		if (rail==="rail2"){
+			i2++;
+			rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2[0], materialRail2[0]));
+			rails2Tab[i2]=emplacementRails(
+					rails2Tab[i2],//rail
+					-Math.PI,//rotation.y
+					rails1Tab[end-1].position.x-33,//x
+					rails1Tab[end-1].position.y+11.25);//y
+			scene.add(rails2Tab[i2]);
+		}
+
+		ligneDroite++;
+		start = end;
+		end += nbrRails[ligneDroite];
+		if (rail==="rail1"){
+			for (i = start; i < end; i++) {
+				rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1[0], materialRail1[0]));
+				rails1Tab[i]=emplacementRails(
+						rails1Tab[i],//rail
+						rails1Tab[start-1].rotation.y-Math.PI/2.0,//rotation.y
+						rails1Tab[start-1].position.x-30-14.75,//x
+						rails1Tab[start-1].position.y+(i+1-start)*30+14.75);//y
+				scene.add(rails1Tab[i]);
 			}
+		}
+		// 3eme virage
+		if(rail==="rail2"){
+			i2++;
+			rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2[0], materialRail2[0]));
+			rails2Tab[i2]=emplacementRails(
+					rails2Tab[i2],//rail
+					0,//rotation.y
+					rails1Tab[end-1].position.x-11.25,//x
+					rails1Tab[end-1].position.y+33.5);//y
+			scene.add(rails2Tab[i2]);
+		}
 
-			function setupRails(rail) {
-				var i, i2=0, ligneDroite=0;
-				var start = 0;
-				var end = nbrRails[ligneDroite];
-				//première ligne droite
-				if (rail==="rail1"){
-					for (i = start; i < end; i++) {
-						//creation d'une new mesh pour chaque rail avec la geometry et le materiau de base
-						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1[0], materialRail1[0]));
-						//incrémentation de la position en fonction du dernier rail de la ligne précédente (et rotation en y si besoin)
-						rails1Tab[i]=emplacementRails(
-								rails1Tab[i],//rail
-								0,//rotation.y
-								-110,//x
-								-70-i*30);//y
-						//affichage
-						scene.add(rails1Tab[i]);
-					}
-				}
-				// 1er virage
-				if (rail==="rail2"){
-					i2++;
-					//creation d'une new mesh pour chaque rail avec la geometry et le materiau de base
-					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2[0], materialRail2[0]));
-					// rotation pour le mettre dans le bon sens + position en fonction du dernier de la ligne droite précédente
-					rails2Tab[i2]=emplacementRails(
-							rails2Tab[i2],//rail
-							-Math.PI/2.0,//rotation.y
-							rails1Tab[end-1].position.x-11.25,//x
-							rails1Tab[end-1].position.y-33);//y
-					//affichage
-					scene.add(rails2Tab[i2]);
-				}
-
-				ligneDroite++;
-				start = end;
-				end += nbrRails[ligneDroite];
-				if (rail==="rail1"){
-					for (i = start; i < end; i++) {
-						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1[0], materialRail1[0]));
-						rails1Tab[i]=emplacementRails(
-								rails1Tab[i],//rail
-								rails1Tab[start-1].rotation.y-Math.PI/2.0,//rotation.y
-								rails1Tab[start-1].position.x-(i-start+1)*30-14.5,//x
-								rails1Tab[start-1].position.y-30-14.8);//y
-						scene.add(rails1Tab[i]);
-					}
-				}
-				// 2eme virage
-				if (rail==="rail2"){
-					i2++;
-					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2[0], materialRail2[0]));
-					rails2Tab[i2]=emplacementRails(
-							rails2Tab[i2],//rail
-							-Math.PI,//rotation.y
-							rails1Tab[end-1].position.x-33,//x
-							rails1Tab[end-1].position.y+11.25);//y
-					scene.add(rails2Tab[i2]);
-				}
-
-				ligneDroite++;
-				start = end;
-				end += nbrRails[ligneDroite];
-				if (rail==="rail1"){
-					for (i = start; i < end; i++) {
-						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1[0], materialRail1[0]));
-						rails1Tab[i]=emplacementRails(
-								rails1Tab[i],//rail
-								rails1Tab[start-1].rotation.y-Math.PI/2.0,//rotation.y
-								rails1Tab[start-1].position.x-30-14.75,//x
-								rails1Tab[start-1].position.y+(i+1-start)*30+14.75);//y
-						scene.add(rails1Tab[i]);
-					}
-				}
-				// 3eme virage
-				if(rail==="rail2"){
-					i2++;
-					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2[0], materialRail2[0]));
-					rails2Tab[i2]=emplacementRails(
-							rails2Tab[i2],//rail
-							0,//rotation.y
-							rails1Tab[end-1].position.x-11.25,//x
-							rails1Tab[end-1].position.y+33.5);//y
-					scene.add(rails2Tab[i2]);
-				}
-
-				ligneDroite++;
-				start = end;
-				end += nbrRails[ligneDroite];
-				if (rail==="rail1"){
-					for (i = start; i < end; i++) {
-						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1[0], materialRail1[0]));
-						rails1Tab[i]=emplacementRails(
-								rails1Tab[i],//rail
-								rails1Tab[start-1].rotation.y+Math.PI/2.0,//rotation.y
-								rails1Tab[start-1].position.x-(i+1-start)*30-14.5,//x
-								rails1Tab[start-1].position.y+30+14.5);//y
-						scene.add(rails1Tab[i]);
-					}
-				}
-				// 4eme virage
-				if (rail==="rail2"){
-					i2++;
-					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2[0], materialRail2[0]));
-					rails2Tab[i2]=emplacementRails(
-							rails2Tab[i2],//rail
-							-Math.PI,//rotation.y
-							rails1Tab[end-1].position.x-33,//x
-							rails1Tab[end-1].position.y+11.25);//y
-					scene.add(rails2Tab[i2]);
-				}
-
-				ligneDroite++;
-				start = end;
-				end += nbrRails[ligneDroite];
-				if (rail==="rail1"){
-					for (i = start; i < end; i++) {
-						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1[0], materialRail1[0]));
-						rails1Tab[i]=emplacementRails(
-								rails1Tab[i],//rail
-								rails1Tab[start-1].rotation.y-Math.PI/2.0,//rotation.y
-								rails1Tab[start-1].position.x-30-14.75,//x
-								rails1Tab[start-1].position.y+(i+1-start)*30+14.75);//y
-						scene.add(rails1Tab[i]);
-					}
-				}
-				// 5eme virage
-				if (rail==="rail2"){
-					i2++;
-					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2[0], materialRail2[0]));
-					rails2Tab[i2]=emplacementRails(
-							rails2Tab[i2],//rail
-							Math.PI/2,//rotation.y
-							rails1Tab[end-1].position.x+11.25,//x
-							rails1Tab[end-1].position.y+33);//y
-					scene.add(rails2Tab[i2]);
-				}
-				ligneDroite++;
-				start = end;
-				end += nbrRails[ligneDroite];
-				if (rail==="rail1"){
-					for (i = start; i < end; i++) {
-						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1[0], materialRail1[0]));
-						rails1Tab[i]=emplacementRails(
-								rails1Tab[i],//rail
-								rails1Tab[start-1].rotation.y-Math.PI/2.0,//rotation.y
-								rails1Tab[start-1].position.x+(i-start+1)*30+14.7,//x
-								rails1Tab[start-1].position.y+30+14.75);//y
-						scene.add(rails1Tab[i]);
-					}
-				}
-				// 6eme virage
-				if (rail==="rail2"){
-					i2++;
-					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2[0], materialRail2[0]));
-					rails2Tab[i2]=emplacementRails(
-							rails2Tab[i2],//rail
-							-Math.PI/2,//rotation.y
-							rails1Tab[end-1].position.x+33.5,//x
-							rails1Tab[end-1].position.y+11.25);//y
-					scene.add(rails2Tab[i2]);
-				}
-
-				ligneDroite++;
-				start = end;
-				end += nbrRails[ligneDroite];
-				if (rail==="rail1"){
-					for (i = start; i < end; i++) {
-						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1[0], materialRail1[0]));
-						rails1Tab[i]=emplacementRails(
-								rails1Tab[i],//rail
-								rails1Tab[start-1].rotation.y+Math.PI/2.0,//rotation.y
-								rails1Tab[start-1].position.x+30+14.5,//x
-								rails1Tab[start-1].position.y+(i+1-start)*30+14.75);//y
-						scene.add(rails1Tab[i]);
-					}
-				}
-				// 7eme virage
-				if (rail==="rail2"){
-					i2++;
-					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2[0], materialRail2[0]));
-					rails2Tab[i2]=emplacementRails(
-							rails2Tab[i2],//rail
-							Math.PI/2,//rotation.y
-							rails1Tab[end-1].position.x+11.25,//x
-							rails1Tab[end-1].position.y+33);//y
-					scene.add(rails2Tab[i2]);
-				}
-				ligneDroite++;
-				start = end;
-				end += nbrRails[ligneDroite];
-				if (rail==="rail1"){
-					for (i = start; i < end; i++) {
-						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1[0], materialRail1[0]));
-						rails1Tab[i]=emplacementRails(
-								rails1Tab[i],//rail
-								rails1Tab[start-1].rotation.y-Math.PI/2.0,//rotation.y
-								rails1Tab[start-1].position.x+(i-start+1)*30+14.7,//x
-								rails1Tab[start-1].position.y+30+14.75);//y
-						scene.add(rails1Tab[i]);
-					}
-				}
-				// 8eme virage
-				if (rail==="rail2"){
-					i2++;
-					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2[0], materialRail2[0]));
-					rails2Tab[i2]=emplacementRails(
-							rails2Tab[i2],//rail
-							0,//rotation.y
-							rails1Tab[end-1].position.x+33,//x
-							rails1Tab[end-1].position.y-11.25);//y
-					scene.add(rails2Tab[i2]);
-				}
-				ligneDroite++;
-				start = end;
-				end += nbrRails[ligneDroite];
-				if (rail==="rail1"){
-					for (i = start; i < end; i++) {
-						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1[0], materialRail1[0]));
-						rails1Tab[i]=emplacementRails(
-								rails1Tab[i],//rail
-								rails1Tab[start-1].rotation.y-Math.PI/2.0,//rotation.y
-								rails1Tab[start-1].position.x+30+14.9,//x
-								rails1Tab[start-1].position.y-(i+1-start)*30-14.5);//y
-						scene.add(rails1Tab[i]);
-					}
-				}
-				// 9eme virage
-				if (rail==="rail2"){
-					i2++;
-					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2[0], materialRail2[0]));
-					rails2Tab[i2]=emplacementRails(
-							rails2Tab[i2],//rail
-							Math.PI,//rotation.y
-							rails1Tab[end-1].position.x+11.25,//x
-							rails1Tab[end-1].position.y-33.5);//y
-					scene.add(rails2Tab[i2]);
-				}
-
-				ligneDroite++;
-				start = end;
-				end += nbrRails[ligneDroite];
-				if (rail==="rail1"){
-					for (i = start; i < end; i++) {
-						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1[0], materialRail1[0]));
-						rails1Tab[i]=emplacementRails(
-								rails1Tab[i],//rail
-								rails1Tab[start-1].rotation.y+Math.PI/2.0,//rotation.y
-								rails1Tab[start-1].position.x+(i-start+1)*30+14.7,//x
-								rails1Tab[start-1].position.y-30-14.25);//y
-						scene.add(rails1Tab[i]);
-					}
-				}
-				// 10eme virage
-				if (rail==="rail2"){
-					i2++;
-					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2[0], materialRail2[0]));
-					rails2Tab[i2]=emplacementRails(
-							rails2Tab[i2],//rail
-							0,//rotation.y
-							rails1Tab[end-1].position.x+33,//x
-							rails1Tab[end-1].position.y-11.25);//y
-					scene.add(rails2Tab[i2]);
-				}
-
-				ligneDroite++;
-				start = end;
-				end += nbrRails[ligneDroite];
-				if (rail==="rail1"){
-					for (i = start; i < end; i++) {
-						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1[0], materialRail1[0]));
-						rails1Tab[i]=emplacementRails(
-								rails1Tab[i],//rail
-								rails1Tab[start-1].rotation.y-Math.PI/2.0,//rotation.y
-								rails1Tab[start-1].position.x+30+14.75,//x
-								rails1Tab[start-1].position.y-(i+1-start)*30-14.5);//y
-						scene.add(rails1Tab[i]);
-					}
-				}
-				// 11eme virage
-				if (rail==="rail2"){
-					i2++;
-					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2[0], materialRail2[0]));
-					rails2Tab[i2]=emplacementRails(
-							rails2Tab[i2],//rail
-							-Math.PI/2.0,//rotation.y
-							rails1Tab[end-1].position.x-11.25,//x
-							rails1Tab[end-1].position.y-33);//y
-					scene.add(rails2Tab[i2]);
-				}
-				// 12eme virage
-				if (rail==="rail2"){
-					i2++;
-					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2[0], materialRail2[0]));
-					rails2Tab[i2]=emplacementRails(
-							rails2Tab[i2],//rail
-							Math.PI/2.0,//rotation.y
-							rails1Tab[end-1].position.x-38-10.25,//x
-							rails1Tab[end-1].position.y-23-33);//y
-					scene.add(rails2Tab[i2]);
-				}
-				ligneDroite++;
-				start = end;
-				end += nbrRails[ligneDroite];
-				if (rail==="rail1"){
-					for (i = start; i < end; i++) {
-						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1[0], materialRail1[0]));
-						rails1Tab[i]=emplacementRails(
-								rails1Tab[i],//rail
-								rails1Tab[start-1].rotation.y,//rotation.y
-								rails1Tab[start-1].position.x-30-29,//x
-								rails1Tab[start-1].position.y-(i+1-start)*30-30-29.5);//y
-						scene.add(rails1Tab[i]);
-					}
-				}
-				// 13eme virage
-				if (rail==="rail2"){
-					i2++;
-					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2[0], materialRail2[0]));
-					rails2Tab[i2]=emplacementRails(
-							rails2Tab[i2],//rail
-							-Math.PI/2.0,//rotation.y
-							rails1Tab[end-1].position.x-11.25,//x
-							rails1Tab[end-1].position.y-33);//y
-					scene.add(rails2Tab[i2]);
-				}
-
-				ligneDroite++;
-				start = end;
-				end += nbrRails[ligneDroite];
-				if (rail==="rail1"){
-					for (i = start; i < end; i++) {
-						rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1[0], materialRail1[0]));
-						rails1Tab[i]=emplacementRails(
-								rails1Tab[i],//rail
-								rails1Tab[start-1].rotation.y-Math.PI/2.0,//rotation.y
-								rails1Tab[start-1].position.x-(i-start+1)*30-14.5,//x
-								rails1Tab[start-1].position.y-30-14.8);//y
-						scene.add(rails1Tab[i]);
-					}
-				}
-				// 14eme virage (au centre)
-				if (rail==="rail2"){
-					i2++;
-					rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2[0], materialRail2[0]));
-					rails2Tab[i2]=emplacementRails(
-							rails2Tab[i2],//rail
-							Math.PI/2.0,//rotation.y
-							rails1Tab[end-1].position.x-35.5,//x
-							rails1Tab[end-1].position.y-11.25);//y
-					scene.add(rails2Tab[i2]);
-				}
-
-				// ajout des axes
-				if (rail==="rail1" && afficherAxes){
-					rails1Tab.forEach((rail1Tab) => {
-						rail1Tab.add(new THREE.AxesHelper(500));
-					});
-				}
-				// ajout des axes
-				if (rail==="rail2" && afficherAxes){
-					rails2Tab.forEach((rail2Tab) => {
-						rail2Tab.add(new THREE.AxesHelper(500));
-					});
-				}
-
+		ligneDroite++;
+		start = end;
+		end += nbrRails[ligneDroite];
+		if (rail==="rail1"){
+			for (i = start; i < end; i++) {
+				rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1[0], materialRail1[0]));
+				rails1Tab[i]=emplacementRails(
+						rails1Tab[i],//rail
+						rails1Tab[start-1].rotation.y+Math.PI/2.0,//rotation.y
+						rails1Tab[start-1].position.x-(i+1-start)*30-14.5,//x
+						rails1Tab[start-1].position.y+30+14.5);//y
+				scene.add(rails1Tab[i]);
 			}
+		}
+		// 4eme virage
+		if (rail==="rail2"){
+			i2++;
+			rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2[0], materialRail2[0]));
+			rails2Tab[i2]=emplacementRails(
+					rails2Tab[i2],//rail
+					-Math.PI,//rotation.y
+					rails1Tab[end-1].position.x-33,//x
+					rails1Tab[end-1].position.y+11.25);//y
+			scene.add(rails2Tab[i2]);
+		}
 
-			function animateLocomotive() {
-				if (locomotive){
-					//si le train a été upload
-					if(rails1Tab[numRail]) {
-						//si les rails ont été upload
-						if(locomotive.position.x === target.x[1] &&
-								locomotive.position.y === target.y[1]){
-							//si on a atteint le target
+		ligneDroite++;
+		start = end;
+		end += nbrRails[ligneDroite];
+		if (rail==="rail1"){
+			for (i = start; i < end; i++) {
+				rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1[0], materialRail1[0]));
+				rails1Tab[i]=emplacementRails(
+						rails1Tab[i],//rail
+						rails1Tab[start-1].rotation.y-Math.PI/2.0,//rotation.y
+						rails1Tab[start-1].position.x-30-14.75,//x
+						rails1Tab[start-1].position.y+(i+1-start)*30+14.75);//y
+				scene.add(rails1Tab[i]);
+			}
+		}
+		// 5eme virage
+		if (rail==="rail2"){
+			i2++;
+			rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2[0], materialRail2[0]));
+			rails2Tab[i2]=emplacementRails(
+					rails2Tab[i2],//rail
+					Math.PI/2,//rotation.y
+					rails1Tab[end-1].position.x+11.25,//x
+					rails1Tab[end-1].position.y+33);//y
+			scene.add(rails2Tab[i2]);
+		}
+		ligneDroite++;
+		start = end;
+		end += nbrRails[ligneDroite];
+		if (rail==="rail1"){
+			for (i = start; i < end; i++) {
+				rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1[0], materialRail1[0]));
+				rails1Tab[i]=emplacementRails(
+						rails1Tab[i],//rail
+						rails1Tab[start-1].rotation.y-Math.PI/2.0,//rotation.y
+						rails1Tab[start-1].position.x+(i-start+1)*30+14.7,//x
+						rails1Tab[start-1].position.y+30+14.75);//y
+				scene.add(rails1Tab[i]);
+			}
+		}
+		// 6eme virage
+		if (rail==="rail2"){
+			i2++;
+			rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2[0], materialRail2[0]));
+			rails2Tab[i2]=emplacementRails(
+					rails2Tab[i2],//rail
+					-Math.PI/2,//rotation.y
+					rails1Tab[end-1].position.x+33.5,//x
+					rails1Tab[end-1].position.y+11.25);//y
+			scene.add(rails2Tab[i2]);
+		}
 
-							// go to next rail:
-							numRail++;
-							if (numRail>=nbrTotalRails){
-								//si on a fait un tour dans le sens horaire
-								//retour au rail zero
-								numRail=0;
-								//on incremente de -2PI car on tourne en rond:
-								rotationTour+=-2*Math.PI;
-								if(debug){
-									console.log("un tour de plus");
-								}
+		ligneDroite++;
+		start = end;
+		end += nbrRails[ligneDroite];
+		if (rail==="rail1"){
+			for (i = start; i < end; i++) {
+				rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1[0], materialRail1[0]));
+				rails1Tab[i]=emplacementRails(
+						rails1Tab[i],//rail
+						rails1Tab[start-1].rotation.y+Math.PI/2.0,//rotation.y
+						rails1Tab[start-1].position.x+30+14.5,//x
+						rails1Tab[start-1].position.y+(i+1-start)*30+14.75);//y
+				scene.add(rails1Tab[i]);
+			}
+		}
+		// 7eme virage
+		if (rail==="rail2"){
+			i2++;
+			rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2[0], materialRail2[0]));
+			rails2Tab[i2]=emplacementRails(
+					rails2Tab[i2],//rail
+					Math.PI/2,//rotation.y
+					rails1Tab[end-1].position.x+11.25,//x
+					rails1Tab[end-1].position.y+33);//y
+			scene.add(rails2Tab[i2]);
+		}
+		ligneDroite++;
+		start = end;
+		end += nbrRails[ligneDroite];
+		if (rail==="rail1"){
+			for (i = start; i < end; i++) {
+				rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1[0], materialRail1[0]));
+				rails1Tab[i]=emplacementRails(
+						rails1Tab[i],//rail
+						rails1Tab[start-1].rotation.y-Math.PI/2.0,//rotation.y
+						rails1Tab[start-1].position.x+(i-start+1)*30+14.7,//x
+						rails1Tab[start-1].position.y+30+14.75);//y
+				scene.add(rails1Tab[i]);
+			}
+		}
+		// 8eme virage
+		if (rail==="rail2"){
+			i2++;
+			rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2[0], materialRail2[0]));
+			rails2Tab[i2]=emplacementRails(
+					rails2Tab[i2],//rail
+					0,//rotation.y
+					rails1Tab[end-1].position.x+33,//x
+					rails1Tab[end-1].position.y-11.25);//y
+			scene.add(rails2Tab[i2]);
+		}
+		ligneDroite++;
+		start = end;
+		end += nbrRails[ligneDroite];
+		if (rail==="rail1"){
+			for (i = start; i < end; i++) {
+				rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1[0], materialRail1[0]));
+				rails1Tab[i]=emplacementRails(
+						rails1Tab[i],//rail
+						rails1Tab[start-1].rotation.y-Math.PI/2.0,//rotation.y
+						rails1Tab[start-1].position.x+30+14.9,//x
+						rails1Tab[start-1].position.y-(i+1-start)*30-14.5);//y
+				scene.add(rails1Tab[i]);
+			}
+		}
+		// 9eme virage
+		if (rail==="rail2"){
+			i2++;
+			rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2[0], materialRail2[0]));
+			rails2Tab[i2]=emplacementRails(
+					rails2Tab[i2],//rail
+					Math.PI,//rotation.y
+					rails1Tab[end-1].position.x+11.25,//x
+					rails1Tab[end-1].position.y-33.5);//y
+			scene.add(rails2Tab[i2]);
+		}
 
-							}
-							if(numRail!==numRailDouble || (numRail===numRailDouble && doubleRailOk)){
-								//si on n'est pas au niveau du double virage
+		ligneDroite++;
+		start = end;
+		end += nbrRails[ligneDroite];
+		if (rail==="rail1"){
+			for (i = start; i < end; i++) {
+				rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1[0], materialRail1[0]));
+				rails1Tab[i]=emplacementRails(
+						rails1Tab[i],//rail
+						rails1Tab[start-1].rotation.y+Math.PI/2.0,//rotation.y
+						rails1Tab[start-1].position.x+(i-start+1)*30+14.7,//x
+						rails1Tab[start-1].position.y-30-14.25);//y
+				scene.add(rails1Tab[i]);
+			}
+		}
+		// 10eme virage
+		if (rail==="rail2"){
+			i2++;
+			rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2[0], materialRail2[0]));
+			rails2Tab[i2]=emplacementRails(
+					rails2Tab[i2],//rail
+					0,//rotation.y
+					rails1Tab[end-1].position.x+33,//x
+					rails1Tab[end-1].position.y-11.25);//y
+			scene.add(rails2Tab[i2]);
+		}
 
-								//calcul de toutes les possibilités des points secondaires pour l'interpolation de bezier
-								let targetDemi = {};
-								if(locomotive.rotation.y-(rotationTour+rails1Tab[numRail].rotation.y)>=Math.PI/2-marge && locomotive.rotation.y-(rotationTour+rails1Tab[numRail].rotation.y)<=Math.PI/2+marge){
-									//si c'est un virage de +PI/2 par rapport à la loco
-									if (locomotive.position.x-rails1Tab[numRail].position.x>0){
-										if (locomotive.position.y-rails1Tab[numRail].position.y>0){
-											targetDemi={ x : target.x[1], y : rails1Tab[numRail].position.y };//1
-											if(debug){
-												console.log("virage de type 1");
-											}
-										}else if (locomotive.position.y-rails1Tab[numRail].position.y<0){
-											targetDemi={ x : rails1Tab[numRail].position.x, y : target.y[1] };//7
-											if(debug){
-												console.log("virage de type 7");
-											}
-										}
-									} else if (locomotive.position.x-rails1Tab[numRail].position.x<0){
-										if (locomotive.position.y-rails1Tab[numRail].position.y>0){
-											targetDemi={ x : rails1Tab[numRail].position.x, y : target.y[1] };//8
-											if(debug){
-												console.log("virage de type 8");
-											}
-										}else if (locomotive.position.y-rails1Tab[numRail].position.y<0){
-											targetDemi={ x : target.x[1], y : rails1Tab[numRail].position.y };//2
-											if(debug){
-												console.log("virage de type 2");
-											}
-										}
-									}
-									if(debugSecondaire){
-										console.log("loco : " + locomotive.position.x + "; " + locomotive.position.y+ "; " + (locomotive.rotation.y*(180/Math.PI))+"°\n"
-												+"next position temp : \n"
-												+ targetDemi.x + "; " + targetDemi.y + "\n"
-												+"next position : \n"
-												+"rail_"+numRail+" : " + rails1Tab[numRail].position.x + "; " + rails1Tab[numRail].position.y + "; " + ((rotationTour+rails1Tab[numRail].rotation.y)*(180/Math.PI)) + "°");
-									}
-									//set vitesse à default
-									vitesseTween = vitesseTweenDefault*1.25;
+		ligneDroite++;
+		start = end;
+		end += nbrRails[ligneDroite];
+		if (rail==="rail1"){
+			for (i = start; i < end; i++) {
+				rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1[0], materialRail1[0]));
+				rails1Tab[i]=emplacementRails(
+						rails1Tab[i],//rail
+						rails1Tab[start-1].rotation.y-Math.PI/2.0,//rotation.y
+						rails1Tab[start-1].position.x+30+14.75,//x
+						rails1Tab[start-1].position.y-(i+1-start)*30-14.5);//y
+				scene.add(rails1Tab[i]);
+			}
+		}
+		// 11eme virage
+		if (rail==="rail2"){
+			i2++;
+			rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2[0], materialRail2[0]));
+			rails2Tab[i2]=emplacementRails(
+					rails2Tab[i2],//rail
+					-Math.PI/2.0,//rotation.y
+					rails1Tab[end-1].position.x-11.25,//x
+					rails1Tab[end-1].position.y-33);//y
+			scene.add(rails2Tab[i2]);
+		}
+		// 12eme virage
+		if (rail==="rail2"){
+			i2++;
+			rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2[0], materialRail2[0]));
+			rails2Tab[i2]=emplacementRails(
+					rails2Tab[i2],//rail
+					Math.PI/2.0,//rotation.y
+					rails1Tab[end-1].position.x-38-10.25,//x
+					rails1Tab[end-1].position.y-23-33);//y
+			scene.add(rails2Tab[i2]);
+		}
+		ligneDroite++;
+		start = end;
+		end += nbrRails[ligneDroite];
+		if (rail==="rail1"){
+			for (i = start; i < end; i++) {
+				rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1[0], materialRail1[0]));
+				rails1Tab[i]=emplacementRails(
+						rails1Tab[i],//rail
+						rails1Tab[start-1].rotation.y,//rotation.y
+						rails1Tab[start-1].position.x-30-29,//x
+						rails1Tab[start-1].position.y-(i+1-start)*30-30-29.5);//y
+				scene.add(rails1Tab[i]);
+			}
+		}
+		// 13eme virage
+		if (rail==="rail2"){
+			i2++;
+			rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2[0], materialRail2[0]));
+			rails2Tab[i2]=emplacementRails(
+					rails2Tab[i2],//rail
+					-Math.PI/2.0,//rotation.y
+					rails1Tab[end-1].position.x-11.25,//x
+					rails1Tab[end-1].position.y-33);//y
+			scene.add(rails2Tab[i2]);
+		}
 
-								} else if(locomotive.rotation.y-(rotationTour+rails1Tab[numRail].rotation.y)>=-Math.PI/2-marge && locomotive.rotation.y-(rotationTour+rails1Tab[numRail].rotation.y)<=-Math.PI/2+marge){
-									//si c'est un virage de -PI/2 par rapport à la loco
-									if (locomotive.position.x-rails1Tab[numRail].position.x>0){
-										if (locomotive.position.y-rails1Tab[numRail].position.y>0){
-											targetDemi={ x : rails1Tab[numRail].position.x, y : target.y[1] };//6
-											if(debug){
-												console.log("virage de type 6");
-											}
-										}else if (locomotive.position.y-rails1Tab[numRail].position.y<0){
-											targetDemi={ x : target.x[1], y : rails1Tab[numRail].position.y };//4
-											if(debug){
-												console.log("virage de type 4");
-											}
-										}
-									} else if (locomotive.position.x-rails1Tab[numRail].position.x<0){
-										if (locomotive.position.y-rails1Tab[numRail].position.y>0){
-											targetDemi={ x : target.x[1], y : rails1Tab[numRail].position.y };//3
-											if(debug){
-												console.log("virage de type 3");
-											}
-										}else if (locomotive.position.y-rails1Tab[numRail].position.y<0){
-											targetDemi={ x : rails1Tab[numRail].position.x, y : target.y[1] };//5
-											if(debug){
-												console.log("virage de type 5");
-											}
-										}
-									}
-									if(debugSecondaire){
-										console.log("loco : " + locomotive.position.x + "; " + locomotive.position.y+ "; " + (locomotive.rotation.y*(180/Math.PI))+"°\n"
-												+"next position temp : \n"
-												+ targetDemi.x + "; " + targetDemi.y + "\n"
-												+"next position : \n"
-												+"rail_"+numRail+" : " + rails1Tab[numRail].position.x + "; " + rails1Tab[numRail].position.y + "; " + ((rotationTour+rails1Tab[numRail].rotation.y)*(180/Math.PI)) + "°");
-									}
+		ligneDroite++;
+		start = end;
+		end += nbrRails[ligneDroite];
+		if (rail==="rail1"){
+			for (i = start; i < end; i++) {
+				rails1Tab[i] = initRails(new THREE.Mesh(geometryRail1[0], materialRail1[0]));
+				rails1Tab[i]=emplacementRails(
+						rails1Tab[i],//rail
+						rails1Tab[start-1].rotation.y-Math.PI/2.0,//rotation.y
+						rails1Tab[start-1].position.x-(i-start+1)*30-14.5,//x
+						rails1Tab[start-1].position.y-30-14.8);//y
+				scene.add(rails1Tab[i]);
+			}
+		}
+		// 14eme virage (au centre)
+		if (rail==="rail2"){
+			i2++;
+			rails2Tab[i2] = initRails(new THREE.Mesh(geometryRail2[0], materialRail2[0]));
+			rails2Tab[i2]=emplacementRails(
+					rails2Tab[i2],//rail
+					Math.PI/2.0,//rotation.y
+					rails1Tab[end-1].position.x-35.5,//x
+					rails1Tab[end-1].position.y-11.25);//y
+			scene.add(rails2Tab[i2]);
+		}
 
-									//set vitesse à default
-									vitesseTween = vitesseTweenDefault*1.25;
+		// ajout des axes
+		if (rail==="rail1" && afficherAxes){
+			rails1Tab.forEach((rail1Tab) => {
+				rail1Tab.add(new THREE.AxesHelper(500));
+			});
+		}
+		// ajout des axes
+		if (rail==="rail2" && afficherAxes){
+			rails2Tab.forEach((rail2Tab) => {
+				rail2Tab.add(new THREE.AxesHelper(500));
+			});
+		}
 
-								} else if(locomotive.rotation.y-(rotationTour+rails1Tab[numRail].rotation.y)>=0-marge && locomotive.rotation.y-(rotationTour+rails1Tab[numRail].rotation.y)<=0+marge){
-									//s'il n'y a pas de rotation entre la loco et le prochain rail <=> ligne droite
-									var nbRailsDroitsSautes=0;
-									for (let i = numRail; i < nbrTotalRails; i++) {
-										if(locomotive.rotation.y-(rotationTour+rails1Tab[numRail].rotation.y)>=0-marge && locomotive.rotation.y-(rotationTour+rails1Tab[numRail].rotation.y)<=0+marge){
-											if(numRail!==numRailDouble)
-												numRail++;
-											else{
-												numRail--;
-												break;
-											}
-										}else{
-											numRail--;
-											break;
-										}
-										nbRailsDroitsSautes++;
-									}
-									if (numRail>=nbrTotalRails) {
-										//on retourne au dernier
-										numRail--;
-									}
+	}
 
-									//set vitesse en fonction de la longueure de la ligne droite
-									vitesseTween = vitesseTweenDefault*(nbRailsDroitsSautes+1);
+	function animateLocomotive() {
+		if (locomotive){
+			//si le train a été upload
+			if(rails1Tab[numRail]) {
+				//si les rails ont été upload
+				if(locomotive.position.x === target.x[1] &&
+						locomotive.position.y === target.y[1]){
+					//si on a atteint le target
 
-									targetDemi={ x : (rails1Tab[numRail].position.x+target.x[1])/2, y : (rails1Tab[numRail].position.y+target.y[1])/2 };
+					// go to next rail:
+					numRail++;
+					if (numRail>=nbrTotalRails){
+						//si on a fait un tour dans le sens horaire
+						//retour au rail zero
+						numRail=0;
+						//on incremente de -2PI car on tourne en rond:
+						rotationTour+=-2*Math.PI;
+						if(debug){
+							console.log("un tour de plus");
+						}
+
+					}
+					if(numRail!==numRailDouble || (numRail===numRailDouble && doubleRailOk)){
+						//si on n'est pas au niveau du double virage
+
+						//calcul de toutes les possibilités des points secondaires pour l'interpolation de bezier
+						let targetDemi = {};
+						if(locomotive.rotation.y-(rotationTour+rails1Tab[numRail].rotation.y)>=Math.PI/2-marge && locomotive.rotation.y-(rotationTour+rails1Tab[numRail].rotation.y)<=Math.PI/2+marge){
+							//si c'est un virage de +PI/2 par rapport à la loco
+							if (locomotive.position.x-rails1Tab[numRail].position.x>0){
+								if (locomotive.position.y-rails1Tab[numRail].position.y>0){
+									targetDemi={ x : target.x[1], y : rails1Tab[numRail].position.y };//1
 									if(debug){
-										console.log("ligne droite");
+										console.log("virage de type 1");
 									}
-								} else {
-									//si ce n'est pas un angle droit ou une ligne droite alors probleme
-									console.log("/!\\ ERROR : trajectoire non reconnue !!!");
-									if(debugSecondaire){
-										console.log("loco : " + locomotive.position.x + "; " + locomotive.position.y+ "; " + (locomotive.rotation.y*(180/Math.PI))+"°\n"
-												+"target précédent : \n"
-												+ targetDemi.x + "; " + targetDemi.y + "\n"
-												+"next position : \n"
-												+"rail_"+numRail+" : " + rails1Tab[numRail].position.x + "; " + rails1Tab[numRail].position.y + "; " + ((rotationTour+rails1Tab[numRail].rotation.y)*(180/Math.PI)) + "°");
+								}else if (locomotive.position.y-rails1Tab[numRail].position.y<0){
+									targetDemi={ x : rails1Tab[numRail].position.x, y : target.y[1] };//7
+									if(debug){
+										console.log("virage de type 7");
 									}
 								}
-
-								//on defini le prochian target avec la valeur du milieu et la destination finale
-								target = { x : [targetDemi.x/*demi*/,rails1Tab[numRail].position.x], y: [targetDemi.y/*demi*/,rails1Tab[numRail].position.y] , rotation : [(rotationTour+rails1Tab[numRail].rotation.y)/*total*/]};
-								//on a passé le double virage
-								doubleRailOk=false;
-							} else if(!doubleRailOk && numRail===numRailDouble){
-								//si on est au niveau du double virage
-
-								//set vitesse à default
-								vitesseTween = vitesseTweenDefault*1.25;
-
-								//on calcul le target du mileu
-								target = { x : [rails1Tab[numRail-1].position.x, (rails1Tab[numRail].position.x+rails1Tab[numRail-1].position.x)/2], y: [(rails1Tab[numRail].position.y+rails1Tab[numRail-1].position.y)/2, (rails1Tab[numRail].position.y+rails1Tab[numRail-1].position.y)/2] , rotation : [rotationTour+rails1Tab[numRail].rotation.y-Math.PI/2/*total*/]};
-								doubleRailOk=true;
-								// pour revenir au bon rail
-								numRail--;
-								if(debug) {
-									console.log("double virage");
-								}
-								if(debugSecondaire){
-									console.log("loco : " + locomotive.position.x + "; " + locomotive.position.y + "; " + (locomotive.rotation.y * (180 / Math.PI)) + "°\n"
-											+ "next position temp : \n"
-											+ target.x[0] + "; " + target.y[0] + "\n"
-											+ "next position : \n"
-											+ "rail_temp : " + target.x[1] + "; " + target.y[1] + "; " + (target.rotation[0] * (180 / Math.PI)) + "°");
+							} else if (locomotive.position.x-rails1Tab[numRail].position.x<0){
+								if (locomotive.position.y-rails1Tab[numRail].position.y>0){
+									targetDemi={ x : rails1Tab[numRail].position.x, y : target.y[1] };//8
+									if(debug){
+										console.log("virage de type 8");
+									}
+								}else if (locomotive.position.y-rails1Tab[numRail].position.y<0){
+									targetDemi={ x : target.x[1], y : rails1Tab[numRail].position.y };//2
+									if(debug){
+										console.log("virage de type 2");
+									}
 								}
 							}
-							tween.to(target, vitesseTween);
-							tween.start();
+							if(debugSecondaire){
+								console.log("loco : " + locomotive.position.x + "; " + locomotive.position.y+ "; " + (locomotive.rotation.y*(180/Math.PI))+"°\n"
+										+"next position temp : \n"
+										+ targetDemi.x + "; " + targetDemi.y + "\n"
+										+"next position : \n"
+										+"rail_"+numRail+" : " + rails1Tab[numRail].position.x + "; " + rails1Tab[numRail].position.y + "; " + ((rotationTour+rails1Tab[numRail].rotation.y)*(180/Math.PI)) + "°");
+							}
+							//set vitesse à default
+							vitesseTween = vitesseTweenDefault*1.5;
 
+						} else if(locomotive.rotation.y-(rotationTour+rails1Tab[numRail].rotation.y)>=-Math.PI/2-marge && locomotive.rotation.y-(rotationTour+rails1Tab[numRail].rotation.y)<=-Math.PI/2+marge){
+							//si c'est un virage de -PI/2 par rapport à la loco
+							if (locomotive.position.x-rails1Tab[numRail].position.x>0){
+								if (locomotive.position.y-rails1Tab[numRail].position.y>0){
+									targetDemi={ x : rails1Tab[numRail].position.x, y : target.y[1] };//6
+									if(debug){
+										console.log("virage de type 6");
+									}
+								}else if (locomotive.position.y-rails1Tab[numRail].position.y<0){
+									targetDemi={ x : target.x[1], y : rails1Tab[numRail].position.y };//4
+									if(debug){
+										console.log("virage de type 4");
+									}
+								}
+							} else if (locomotive.position.x-rails1Tab[numRail].position.x<0){
+								if (locomotive.position.y-rails1Tab[numRail].position.y>0){
+									targetDemi={ x : target.x[1], y : rails1Tab[numRail].position.y };//3
+									if(debug){
+										console.log("virage de type 3");
+									}
+								}else if (locomotive.position.y-rails1Tab[numRail].position.y<0){
+									targetDemi={ x : rails1Tab[numRail].position.x, y : target.y[1] };//5
+									if(debug){
+										console.log("virage de type 5");
+									}
+								}
+							}
+							if(debugSecondaire){
+								console.log("loco : " + locomotive.position.x + "; " + locomotive.position.y+ "; " + (locomotive.rotation.y*(180/Math.PI))+"°\n"
+										+"next position temp : \n"
+										+ targetDemi.x + "; " + targetDemi.y + "\n"
+										+"next position : \n"
+										+"rail_"+numRail+" : " + rails1Tab[numRail].position.x + "; " + rails1Tab[numRail].position.y + "; " + ((rotationTour+rails1Tab[numRail].rotation.y)*(180/Math.PI)) + "°");
+							}
+
+							//set vitesse à default
+							vitesseTween = vitesseTweenDefault*1.5;
+
+						} else if(locomotive.rotation.y-(rotationTour+rails1Tab[numRail].rotation.y)>=0-marge && locomotive.rotation.y-(rotationTour+rails1Tab[numRail].rotation.y)<=0+marge){
+							//s'il n'y a pas de rotation entre la loco et le prochain rail <=> ligne droite
+							var nbRailsDroitsSautes=0;
+							/*for (let i = numRail; i < nbrTotalRails; i++) {
+                                if(locomotive.rotation.y-(rotationTour+rails1Tab[numRail].rotation.y)>=0-marge && locomotive.rotation.y-(rotationTour+rails1Tab[numRail].rotation.y)<=0+marge){
+                                    if(numRail!==numRailDouble)
+                                        numRail++;
+                                    else{
+                                        numRail--;
+                                        break;
+                                    }
+                                }else{
+                                    numRail--;
+                                    break;
+                                }
+                                nbRailsDroitsSautes++;
+                            }
+                            if (numRail>=nbrTotalRails) {
+                                //on retourne au dernier
+                                numRail--;
+                            }*/
+
+							//set vitesse en fonction de la longueure de la ligne droite
+							vitesseTween = vitesseTweenDefault*(nbRailsDroitsSautes+1);
+
+							targetDemi={ x : (rails1Tab[numRail].position.x+target.x[1])/2, y : (rails1Tab[numRail].position.y+target.y[1])/2 };
+							if(debug){
+								console.log("ligne droite");
+							}
 						} else {
-							//si on a pas atteint le target:
-							if(rotationTour>-2*Math.PI){
-								//si on est au premier tour
-								if(debugSecondaire){
-									//on dessine la trajectoire
-									var point = new THREE.AxesHelper(20);
-									point.position.set( locomotive.position.x, locomotive.position.y, locomotive.position.z+50);
-									point.rotation.z=locomotive.rotation.y;
-									scene.add(point);
-								}
+							//si ce n'est pas un angle droit ou une ligne droite alors probleme
+							console.log("/!\\ ERROR : trajectoire non reconnue !!!");
+							if(debugSecondaire){
+								console.log("loco : " + locomotive.position.x + "; " + locomotive.position.y+ "; " + (locomotive.rotation.y*(180/Math.PI))+"°\n"
+										+"target précédent : \n"
+										+ targetDemi.x + "; " + targetDemi.y + "\n"
+										+"next position : \n"
+										+"rail_"+numRail+" : " + rails1Tab[numRail].position.x + "; " + rails1Tab[numRail].position.y + "; " + ((rotationTour+rails1Tab[numRail].rotation.y)*(180/Math.PI)) + "°");
 							}
-							//update le tween
-							TWEEN.update();
+						}
+
+						//on defini le prochian target avec la valeur du milieu et la destination finale
+						target = { x : [targetDemi.x/*demi*/,rails1Tab[numRail].position.x], y: [targetDemi.y/*demi*/,rails1Tab[numRail].position.y] , rotation : [(rotationTour+rails1Tab[numRail].rotation.y)/*total*/]};
+						//on a passé le double virage
+						doubleRailOk=false;
+					} else if(!doubleRailOk && numRail===numRailDouble){
+						//si on est au niveau du double virage
+
+						//set vitesse à default
+						vitesseTween = vitesseTweenDefault*1.5;
+
+						//on calcul le target du mileu
+						target = { x : [rails1Tab[numRail-1].position.x, (rails1Tab[numRail].position.x+rails1Tab[numRail-1].position.x)/2], y: [(rails1Tab[numRail].position.y+rails1Tab[numRail-1].position.y)/2, (rails1Tab[numRail].position.y+rails1Tab[numRail-1].position.y)/2] , rotation : [rotationTour+rails1Tab[numRail].rotation.y-Math.PI/2/*total*/]};
+						doubleRailOk=true;
+						// pour revenir au bon rail
+						numRail--;
+						if(debug) {
+							console.log("double virage");
+						}
+						if(debugSecondaire){
+							console.log("loco : " + locomotive.position.x + "; " + locomotive.position.y + "; " + (locomotive.rotation.y * (180 / Math.PI)) + "°\n"
+									+ "next position temp : \n"
+									+ target.x[0] + "; " + target.y[0] + "\n"
+									+ "next position : \n"
+									+ "rail_temp : " + target.x[1] + "; " + target.y[1] + "; " + (target.rotation[0] * (180 / Math.PI)) + "°");
 						}
 					}
-					//allumer ou eteindre les lumieres en fonction de la position du soleil
-					if(allumerLumieres){
-						spotLightLocoD.intensity=5;
-						spotLightLocoG.intensity=5;
-					}else{
-						spotLightLocoD.intensity=0;
-						spotLightLocoG.intensity=0;
+					tween.to(target, vitesseTween);
+					tween.start();
+
+				} else {
+					//si on a pas atteint le target:
+					if(rotationTour>-2*Math.PI){
+						//si on est au premier tour
+						if(debugSecondaire){
+							//on dessine la trajectoire
+							var point = new THREE.AxesHelper(20);
+							point.position.set( locomotive.position.x, locomotive.position.y, locomotive.position.z+50);
+							point.rotation.z=locomotive.rotation.y;
+							scene.add(point);
+						}
 					}
+					//update le tween
+					TWEEN.update();
 				}
 			}
-
-			function animateFumee(){
-				if(locomotive){
-					for (let i = 0; i < 30; i++) {
-						if((timeLiveFumee[i]>=220 || imgFumee[i]===undefined || imgFumee[i].scale.x<1) && delayFumee>=5){
-							delayFumee=0;
-							if(imgFumee[i]===undefined){
-								imgFumee[i]=new THREE.Mesh(geometryFumee, materialFumee);
-								imgFumee[i].name="fumee"+i;
-								// enable shadows
-								imgFumee[i].castShadow = true;
-								imgFumee[i].receiveShadow = true;
-								scene.add(imgFumee[i]);
+			//allumer ou eteindre les lumieres en fonction de la position du soleil
+			if(allumerLumieres){
+				spotLightLocoD.intensity=5;
+				spotLightLocoG.intensity=5;
+				//0
+			}else{
+				spotLightLocoD.intensity=0;
+				spotLightLocoG.intensity=0;//1
+			}
+		}
+	}
+	var palierFumee = 100;
+	function animateFumee(){
+		if(locomotive){
+			for (let i = 0; i < nbrFumee; i++) {
+				if((timeLiveFumee[i]>=220 || imgFumee[i]===undefined || imgFumee[i].scale.x<1) && delayFumee>=5){
+					delayFumee=0;
+					if(imgFumee[i]===undefined){
+						imgFumee[i]=new THREE.Mesh(geometryFumee, materialFumee);
+						imgFumee[i].name="fumee"+i;
+						// enable shadows
+						//imgFumee[i].castShadow = true;
+						//imgFumee[i].receiveShadow = true;
+						scene.add(imgFumee[i]);
+					}
+					axesFumee.getWorldPosition(imgFumee[i].position);
+					imgFumee[i].rotation.x=Math.random() * (2*Math.PI/*max*/ - (-2*Math.PI)/*min*/) + (-2*Math.PI)/*min*/;
+					imgFumee[i].rotation.y=Math.random() * (2*Math.PI/*max*/ - (-2*Math.PI)/*min*/) + (-2*Math.PI)/*min*/;
+					imgFumee[i].rotation.z=Math.random() * (2*Math.PI/*max*/ - (-2*Math.PI)/*min*/) + (-2*Math.PI)/*min*/;
+					imgFumee[i].scale.x=1;
+					imgFumee[i].scale.y=1;
+					imgFumee[i].scale.z=1;
+					timeLiveFumee[i]=0;
+					//console.log(imgFumee[i]);
+				}else{
+					if(imgFumee[i]!==undefined) {
+						timeLiveFumee[i]++;
+						imgFumee[i].position.z+=15/(timeLiveFumee[i]+1);//la fumée monte
+						if(timeLiveFumee[i]>=200){
+							if(imgFumee[i].scale.x>1){
+								imgFumee[i].scale.x-=0.3;
+								imgFumee[i].scale.y-=0.3;
+								imgFumee[i].scale.z-=0.3;
+							}else{
+								timeLiveFumee[i]=220;
+								imgFumee[i].scale.x=0;
+								imgFumee[i].scale.y=0;
+								imgFumee[i].scale.z=0;
 							}
-							axesFumee.getWorldPosition(imgFumee[i].position);
-							imgFumee[i].rotation.x=Math.random() * (2*Math.PI/*max*/ - (-2*Math.PI)/*min*/) + (-2*Math.PI)/*min*/;
-							imgFumee[i].rotation.y=Math.random() * (2*Math.PI/*max*/ - (-2*Math.PI)/*min*/) + (-2*Math.PI)/*min*/;
-							imgFumee[i].rotation.z=Math.random() * (2*Math.PI/*max*/ - (-2*Math.PI)/*min*/) + (-2*Math.PI)/*min*/;
-							imgFumee[i].scale.x=1;
-							imgFumee[i].scale.y=1;
-							imgFumee[i].scale.z=1;
-							timeLiveFumee[i]=0;
-							//console.log(imgFumee[i]);
+						}else if(timeLiveFumee[i]<=20){
+							imgFumee[i].scale.x+=0.2;
+							imgFumee[i].scale.y+=0.2;
+							imgFumee[i].scale.z+=0.2;
 						}else{
-							if(imgFumee[i]!==undefined) {
-								timeLiveFumee[i]++;
-								imgFumee[i].position.z+=15/(timeLiveFumee[i]+1);//la fumée monte
-								if(timeLiveFumee[i]>=200){
-									if(imgFumee[i].scale.x>1){
-										imgFumee[i].scale.x-=0.3;
-										imgFumee[i].scale.y-=0.3;
-										imgFumee[i].scale.z-=0.3;
-									}else{
-										timeLiveFumee[i]=220;
-										imgFumee[i].scale.x=0;
-										imgFumee[i].scale.y=0;
-										imgFumee[i].scale.z=0;
-									}
-								}else if(timeLiveFumee[i]<=20){
-									imgFumee[i].scale.x+=0.2;
-									imgFumee[i].scale.y+=0.2;
-									imgFumee[i].scale.z+=0.2;
-								}else{
-									imgFumee[i].scale.x+=0.05;
-									imgFumee[i].scale.y+=0.05;
-									imgFumee[i].scale.z+=0.05;
-									if(i % 4 === 0){
-										timeLiveFumee[i]=200;
-									}
-								}
-
-
-
-								/*imgFumee[i].rotation.x+=0.05;//Math.PI/10;
-								imgFumee[i].rotation.y+=0.05;//Math.PI/8;
-								imgFumee[i].rotation.z+=0.05;//Math.PI/10;*/
+							imgFumee[i].scale.x+=0.05;
+							imgFumee[i].scale.y+=0.05;
+							imgFumee[i].scale.z+=0.05;
+							if(i % 4 === 0){
+								timeLiveFumee[i]=200;
 							}
 						}
 					}
-					delayFumee++;
 				}
 			}
-
-			//rendre pour le lundi une archive qui contient le code source + rapport (petit avec image et ce qu'on veut mettre en avant) + slide de mercredi au format PPT
-			//5min par groupes => 7 slides max + commenter ce qui as été dur
-
-			function tweenInit(){
-				var position = { x : rails1Tab[numRail].position.x, y: rails1Tab[numRail].position.y, rotation: rails1Tab[numRail].rotation.y };
-				target = { x : [rails1Tab[numRail].position.x/*demi*/,rails1Tab[numRail].position.x/*fin*/], y: [position.y/*demi*/,rails1Tab[numRail].position.y/*fin*/] , rotation : [(rotationTour+rails1Tab[numRail].rotation.y)]};
+			delayFumee++;
+		}
+	}
 
 
-				tween = new TWEEN.Tween(position)
-						.to(target, vitesseTween)
-						.onUpdate(function(object){
-							locomotive.position.x = object.x;
-							locomotive.position.y = object.y;
-							locomotive.rotation.y = object.rotation;
-							if(debugSecondaire) {
-								console.log("en mouvement : x : " + object.x + "; y : " + object.y + "; alpha : " + object.rotation);
-							}
-							animateFumee();
-						})
-						.easing(TWEEN.Easing.Linear.None)
-						.interpolation(TWEEN.Interpolation.Bezier)
-						.start();
-				if(debug) {
-					console.log("Tween Locomotive ok");
+	function tweenInit(){
+		var position = { x : rails1Tab[numRail].position.x, y: rails1Tab[numRail].position.y, rotation: rails1Tab[numRail].rotation.y };
+		target = { x : [rails1Tab[numRail].position.x/*demi*/,rails1Tab[numRail].position.x/*fin*/], y: [position.y/*demi*/,rails1Tab[numRail].position.y/*fin*/] , rotation : [(rotationTour+rails1Tab[numRail].rotation.y)]};
+
+
+		tween = new TWEEN.Tween(position)
+				.to(target, vitesseTween)
+				.onUpdate(function(object){
+					locomotive.position.x = object.x;
+					locomotive.position.y = object.y;
+					locomotive.rotation.y = object.rotation;
+					if(debugSecondaire) {
+						console.log("en mouvement : x : " + object.x + "; y : " + object.y + "; alpha : " + object.rotation);
+					}
+					animateFumee();
+				})
+				.easing(TWEEN.Easing.Linear.None)
+				.interpolation(TWEEN.Interpolation.Bezier)
+				.start();
+		if(debug) {
+			console.log("Tween Locomotive ok");
+		}
+	}
+
+
+	//https://threejs.org/examples/webgl_shaders_sky.html
+	function initSky() {
+
+		// Add Sky
+		sky = new Sky();
+		sky.scale.setScalar( 4500 );
+		//sky.add(new AxesHelper(1));
+		//sky.rotation.set(Math.PI/2,0, 0);
+		scene.add( sky );
+
+		// Add Sun Helper
+		sunSphere = new THREE.Mesh(
+				new THREE.SphereBufferGeometry( 20000, 16, 8 ),
+				new THREE.MeshBasicMaterial( { color: 0xffffff } )
+		);
+		sunSphere.position.y = - 700000;
+		sunSphere.visible = false;
+		scene.add( sunSphere );
+	}
+
+	effectController = {
+		turbidity: 10,
+		rayleigh: 2,
+		mieCoefficient: 0.005,
+		mieDirectionalG: 0.8,
+		luminance: 1,
+		inclination: 0.49, // elevation / inclination
+		azimuth: 0.25, // Facing front,
+		sun: true
+	};
+
+
+	function skyAnimate(time) {
+		if(sky){
+			var distance = 400000;
+
+			var uniforms = sky.material.uniforms;
+			uniforms[ "turbidity" ].value = effectController.turbidity;
+			uniforms[ "rayleigh" ].value = effectController.rayleigh;
+			uniforms[ "mieCoefficient" ].value = effectController.mieCoefficient;
+			uniforms[ "mieDirectionalG" ].value = effectController.mieDirectionalG;
+			uniforms[ "luminance" ].value = effectController.luminance;
+
+			var theta = Math.PI * ( effectController.inclination*time/rotationSoleil - 0.5 );
+			var phi = 2 * Math.PI * ( effectController.azimuth - 0.5 );
+
+			allumerLumieres = sunSphere.position.y <= 100;//eteindre les phares si le soleil est couché
+
+			sunSphere.position.x = distance * Math.cos( phi );
+			sunSphere.position.y = distance * Math.sin( phi ) * Math.sin( -theta );
+			sunSphere.position.z = distance * Math.sin( phi ) * Math.cos( -theta );
+
+			sunSphere.visible = effectController.sun;
+
+			uniforms[ "sunPosition" ].value.copy( sunSphere.position );
+
+		}
+	}
+
+
+
+	function animateSun(time){
+		//changement position soleil
+		var distance = 400000;
+		var theta = Math.PI * ( effectController.inclination*time/rotationSoleil - 0.5 );
+		if(light){
+			light.position.x=Math.cos(theta)*distance;
+			light.position.z=Math.sin(theta)*distance;
+		}
+		//changer l'état des lumieres de la loco si le soleil et en dessous de l'horizon
+		allumerLumieres = light.position.z <= 100;
+	}
+
+	var intensityEmissiveTextures = 1;
+	function changementTextures(){
+		//changer l'intensité des textures emissives en focntion de la hauteur du soleil
+		if(light) {
+			intensityEmissiveTextures = (light.position.z - 1100)/100000;
+		}
+		if(terrain && terrainEmissiveTexture!==undefined && terrainBumpTexture!==undefined ) {
+			terrain.traverse(function (child) {
+				if (child.isMesh) {
+					var material = child.material;
+					if (Math.abs(intensityEmissiveTextures) >= 1){ material.emissiveIntensity = 1;}
+					else {material.emissiveIntensity = Math.abs(intensityEmissiveTextures);}
+
+					if (intensityEmissiveTextures > 0) {
+						material.emissive = new THREE.Color(0xffffff);//couleur blanche pour la neige
+						material.emissiveMap = terrainEmissiveTexture;
+					} else {
+						material.emissive = new THREE.Color(0x0083ff);
+						material.emissiveMap = terrainBumpTexture;
+					}
 				}
-			}
+			});
+		}
+		if(materialFumee){
+			if(intensityEmissiveTextures>=1) intensityEmissiveTextures=1;
+			else if(intensityEmissiveTextures<=0) intensityEmissiveTextures=0;
+			materialFumee.emissiveIntensity = intensityEmissiveTextures;
+		}
+	}
 
-			function animateSun(time){
-				//changement position soleil
-				if(light){
-					light.position.x=Math.cos(time/10000)*1300;
-					light.position.z=Math.sin(time/10000)*1300;
-				}
-				//changer l'état des lumieres de la loco si le soleil et en dessous de l'horizon
-				allumerLumieres = light.position.z <= 100;
-			}
+	function animate(time) {
+		animateLocomotive();
+		animateSun(time);
 
-			function animate(time) {
-				animateLocomotive();
-				animateSun(time);
+		changementTextures();
+
+		if(addSky) skyAnimate(time);
 
 
-				controls.update();
-				render();
-				requestAnimationFrame( animate );
-			}
+		controls.update();
+		render();
+		requestAnimationFrame( animate );
+	}
 
-			function render() {
-				renderer.render(scene, camera);
-			}
+	function render() {
+		renderer.render(scene, camera);
+	}
 
-			// gestion redimensionnement fenetre
-			function onWindowResize() {
+	// gestion redimensionnement fenetre
+	function onWindowResize() {
 
-				windowHalfX = window.innerWidth / 2;
-				windowHalfY = window.innerHeight / 2;
+		windowHalfX = window.innerWidth / 2;
+		windowHalfY = window.innerHeight / 2;
 
-				camera.aspect = window.innerWidth / window.innerHeight;
-				camera.updateProjectionMatrix();
+		camera.aspect = window.innerWidth / window.innerHeight;
+		camera.updateProjectionMatrix();
 
-				renderer.setSize(window.innerWidth, window.innerHeight);
-			}
+		renderer.setSize(window.innerWidth, window.innerHeight);
+	}
 
-		</script>
-	</body>
+</script>
+</body>
 </html>
