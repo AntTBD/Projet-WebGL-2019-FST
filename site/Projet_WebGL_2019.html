@@ -472,24 +472,6 @@
 															if(debug) {
 																console.log("Locomotive ok");
 															}
-
-
-															// Cactus
-															mtlLoader.load( 'modifs/cactus.mtl', function ( materials ) {
-																materials.preload();
-																objLoader.setMaterials(materials)
-																		.load('cactus.obj', function (obj) {
-																			obj.scale.set(0.3, 0.3, 0.3);
-																			obj.translateX(-110);
-																			obj.translateY(0);//hauteur
-																			obj.translateZ(0);
-
-																			scene.add(obj);
-																			if(debug) {
-																				console.log("Cactus ok");
-																			}
-																		});
-															});
 														});
 											});
 										});
