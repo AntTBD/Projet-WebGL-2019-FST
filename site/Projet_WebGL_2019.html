@@ -210,7 +210,10 @@
 
 	function addGUI()
 	{
-		gui = new dat.GUI();
+		gui = new dat.GUI({
+			height : 4 * 32 - 1,
+			width : 400
+		});
 		parameters =
 				{
 					vitesseLoco:1000,
