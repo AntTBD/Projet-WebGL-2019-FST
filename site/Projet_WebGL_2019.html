@@ -189,12 +189,12 @@
 		light.position.set(0, -500, 500);
 		// enable shadows
 		light.castShadow = true;
-		//light.receiveShadow = true;
 
 		if (afficherAxes) {
 			var helper = new THREE.PointLightHelper(light, 200);
 			scene.add(helper);
 		}
+		light.position.z = 200;
 		scene.add(light);
 
 
@@ -1228,9 +1228,8 @@
 
 		// Add Sky
 		sky = new Sky();
-		sky.scale.setScalar( 4500 );
-		//sky.add(new AxesHelper(1));
-		//sky.rotation.set(Math.PI/2,0, 0);
+		sky.scale.setScalar( 450*4 );
+		sky.position.z = 200;
 		scene.add( sky );
 
 		// Add Sun Helper
@@ -1328,11 +1327,11 @@
 
 	function animate(time) {
 		animateLocomotive();
-		animateSun(time);
+		animateSun(time+3600*3);//+3600*3 pour comencer en pleine journee et non à la fin de la nuit
+		if(addSky) skyAnimate(time+3600*3);//+3600*3 pour comencer en pleine journee et non à la fin de la nuit
 
 		changementTextures();
 
-		if(addSky) skyAnimate(time);
 
 
 		controls.update();
