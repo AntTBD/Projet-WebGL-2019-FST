@@ -15,7 +15,7 @@ import {
 	RepeatWrapping,
 	TextureLoader,
 	Vector2
-} from "/threejs/three.module.js";
+} from "../threejs/three.module.js";
 
 var MTLLoader = function ( manager ) {
 

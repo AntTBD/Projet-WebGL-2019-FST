@@ -23,7 +23,7 @@ import {
     ShaderMaterial,
     UniformsUtils,
     Vector3
-} from "/threejs/three.module.js";
+} from "../threejs/three.module.js";
 
 var Sky = function () {
 

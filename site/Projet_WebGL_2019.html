@@ -328,7 +328,7 @@
 
 		//Texture Loader
 		var textLoader = new THREE.TextureLoader(manager)
-				.setPath( '/data/textures/' );
+				.setPath( './data/textures/' );
 		textLoader.onError = function ( error ) {
 			console.log("Error TextureLoader : " + error);
 		};
@@ -341,7 +341,7 @@
 
 		// OBJLoader
 		var objLoader = new OBJLoader(manager)
-				.setPath( '/data/modifs/' );
+				.setPath( './data/modelsRetouches/' );
 		objLoader.onError = function ( error ) {
 			console.log("Error OBJLoader : " + error);
 		};
@@ -353,7 +353,7 @@
 
 		// MTLLoader
 		var mtlLoader = new MTLLoader(manager);
-		mtlLoader.setPath( '/data/' );
+		mtlLoader.setPath( './data/' );
 		mtlLoader.onError = function ( error ) {
 			console.log("Error MTLLoader : " + error);
 		};
@@ -380,7 +380,7 @@
 
 
 		// Terrain
-		objLoader.load('_TerrainLod4_Bis.obj', function (obj) {
+		objLoader.load('TerrainLod4_Bis.obj', function (obj) {
 			terrain = obj;
 
 			if (afficherAxes){
@@ -390,7 +390,7 @@
 
 
 			// Rail droit
-			mtlLoader.load( 'modifs/rail1.mtl', function ( materials ) {
+			mtlLoader.load( 'modelsRetouches/rail1.mtl', function ( materials ) {
 				materials.preload();
 				objLoader.setMaterials( materials )
 						.load( 'rail1.obj', function ( obj ) {
@@ -413,7 +413,7 @@
 							}
 
 							// Rail tournant
-							mtlLoader.load( 'modifs/rail2.mtl', function ( materials ) {
+							mtlLoader.load( 'modelsRetouches/rail2.mtl', function ( materials ) {
 								materials.preload();
 								objLoader.setMaterials(materials)
 										.load('rail2.obj', function (obj) {
@@ -437,7 +437,7 @@
 											}
 
 											// Locomotive
-											mtlLoader.load( 'modifs/resicza_loco.mtl', function ( materials ) {
+											mtlLoader.load( 'modelsRetouches/resicza_loco.mtl', function ( materials ) {
 												materials.preload();
 												objLoader.setMaterials(materials)
 														.load('resicza_loco.obj', function (obj) {
