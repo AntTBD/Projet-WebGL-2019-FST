@@ -21,3 +21,7 @@
          
 - animate()
      |_ deplacement de la loco entre chaque rail droit et calcul des courbes pour les virages
+
+Animation:
+
+![Animation](rapport/screens/animation.gif)
