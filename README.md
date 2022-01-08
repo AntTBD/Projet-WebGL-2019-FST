@@ -39,3 +39,5 @@
 <p>Animation:</p>
 
 ![Animation](rapport/screens/animation.gif)
+
+<img src="rapport/screens/all%20textures.PNG" height=500>
